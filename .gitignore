@@ -3,3 +3,6 @@ __pycache__
 
 # Virtualenv
 .venv
+
+# Jupyter
+.ipynb_checkpoints
