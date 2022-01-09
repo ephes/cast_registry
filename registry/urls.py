@@ -14,8 +14,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+
+from .views import csrf_demo, csrf_demo_checker
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("demo/", csrf_demo),
+    path("demo/checker/", csrf_demo_checker),
+    path("__debug__/", include("debug_toolbar.urls")),
 ]

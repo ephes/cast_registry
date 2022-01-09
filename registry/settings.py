@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
+print("base dir: ", str(BASE_DIR))
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # third party apps
+    "debug_toolbar",
     "django_extensions",
     "django_htmx",
 ]
@@ -51,6 +53,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "registry.urls"
@@ -58,7 +61,7 @@ ROOT_URLCONF = "registry.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -119,7 +122,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+print("static files dir: ", STATICFILES_DIRS)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -129,18 +134,28 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Jupyter
 PATH_TO_NOTEBOOK_DIR = "notebooks"
 try:
-    import jupyterlab
-    notebook_default_url = '/lab'  # Using JupyterLab
+    import jupyterlab  # noqa
+
+    notebook_default_url = "/lab"  # Using JupyterLab
 except ImportError:
-    notebook_default_url = '/tree'  # Using Jupyter
+    notebook_default_url = "/tree"  # Using Jupyter
 
 NOTEBOOK_ARGUMENTS = [
-    '--ip', '0.0.0.0',
-    '--port', '8888',
-    '--notebook-dir', PATH_TO_NOTEBOOK_DIR,
-    '--NotebookApp.default_url', notebook_default_url,
+    "--ip",
+    "0.0.0.0",
+    "--port",
+    "8888",
+    "--notebook-dir",
+    PATH_TO_NOTEBOOK_DIR,
+    "--NotebookApp.default_url",
+    notebook_default_url,
 ]
-IPYTHON_KERNEL_DISPLAY_NAME = 'Django Kernel'
+IPYTHON_KERNEL_DISPLAY_NAME = "Django Kernel"
 
 # if you want to use Chrome by default
 # os.environ.setdefault('BROWSER', 'google-chrome')
+
+# Django Debug Toolbar
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
