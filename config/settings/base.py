@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # third party apps
+    "debug_toolbar",
     "django_extensions",
     "django_htmx",
 ]
@@ -54,6 +55,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -137,18 +139,28 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Jupyter
 PATH_TO_NOTEBOOK_DIR = "notebooks"
 try:
-    import jupyterlab
-    notebook_default_url = '/lab'  # Using JupyterLab
+    import jupyterlab  # noqa
+
+    notebook_default_url = "/lab"  # Using JupyterLab
 except ImportError:
-    notebook_default_url = '/tree'  # Using Jupyter
+    notebook_default_url = "/tree"  # Using Jupyter
 
 NOTEBOOK_ARGUMENTS = [
-    '--ip', '0.0.0.0',
-    '--port', '8888',
-    '--notebook-dir', PATH_TO_NOTEBOOK_DIR,
-    '--NotebookApp.default_url', notebook_default_url,
+    "--ip",
+    "0.0.0.0",
+    "--port",
+    "8888",
+    "--notebook-dir",
+    PATH_TO_NOTEBOOK_DIR,
+    "--NotebookApp.default_url",
+    notebook_default_url,
 ]
-IPYTHON_KERNEL_DISPLAY_NAME = 'Django Kernel'
+IPYTHON_KERNEL_DISPLAY_NAME = "Django Kernel"
 
 # if you want to use Chrome by default
 # os.environ.setdefault('BROWSER', 'google-chrome')
+
+# Django Debug Toolbar
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
