@@ -16,11 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from .views import csrf_demo, csrf_demo_checker
+from .views import csrf_demo, csrf_demo_checker, partial_rendering
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("demo/", csrf_demo),
     path("demo/checker/", csrf_demo_checker),
+    path("partial-rendering/", partial_rendering),
     path("__debug__/", include("debug_toolbar.urls")),
 ]
