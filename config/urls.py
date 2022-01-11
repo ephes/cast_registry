@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.registry.views import csrf_demo, csrf_demo_checker
+from apps.registry.views import csrf_demo, csrf_demo_checker, partial_rendering
 
 urlpatterns = [
     path("admin/", admin.site.urls),
