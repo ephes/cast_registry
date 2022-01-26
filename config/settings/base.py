@@ -34,18 +34,19 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # first party apps
+    "apps.registry.apps.RegistryConfig",
+    # third party apps
+    "debug_toolbar",
+    "django_extensions",
+    "django_htmx",
+    # contrib
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # third party apps
-    "debug_toolbar",
-    "django_extensions",
-    "django_htmx",
-    # own apps
-    "apps.registry.apps.RegistryConfig",
 ]
 
 MIDDLEWARE = [

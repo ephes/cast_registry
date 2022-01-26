@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.registry.views import csrf_demo, csrf_demo_checker, partial_rendering
+from apps.registry.views import csrf_demo, csrf_demo_checker, partial_rendering, list_domains, create_domain, messages
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -24,4 +24,7 @@ urlpatterns = [
     path("demo/checker/", csrf_demo_checker),
     path("partial-rendering/", partial_rendering),
     path("__debug__/", include("debug_toolbar.urls")),
+    path("domain/create/", create_domain, name="create_domain"),
+    path("domain/", list_domains, name="list_domains"),
+    path("messages/", messages, name="messages"),
 ]
