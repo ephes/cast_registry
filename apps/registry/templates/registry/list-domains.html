@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Domains</title>
+    <script src="{% static "htmx.js" %}"></script>
+</head>
+<body>
+<h1>Domains</h1>
+Show progress: {{ show_progress }}
+{% if show_progress %}
+    <div hx-get="/messages"
+     hx-trigger="every 1s">
+      initial progress
+    </div>
+{% else %}
+    <form action="{% url "create_domain" %}" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit">
+    </form>
+{% endif %}
+<ul>
+    {% for domain in domains %}
+        <li>
+            {{ domain.fqdn }} {{ domain.owner.username }}
+        </li>
+    {% endfor %}
+</ul>
+</body>
+</html>
