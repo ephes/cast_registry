@@ -317,6 +317,20 @@ pycodestyle = ">=2.8.0,<2.9.0"
 pyflakes = ">=2.4.0,<2.5.0"
 
 [[package]]
+name = "honcho"
+version = "1.1.0"
+description = "Honcho: a Python clone of Foreman. For managing Procfile-based applications."
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+colorama = {version = "*", markers = "sys_platform == \"win32\""}
+
+[package.extras]
+export = ["jinja2 (>=2.7,<3)"]
+
+[[package]]
 name = "idna"
 version = "3.3"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1153,7 +1167,7 @@ test = ["websockets"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "d5b23b20e47176456657253c697b7dd06cc1522cb3174476bc4eaf6c208b4123"
+content-hash = "0ff0ceccc951885c21d859cfdf81273299c69909d21c5a27be26e3561bdc8857"
 
 [metadata.files]
 anyio = [
@@ -1349,6 +1363,10 @@ faker = [
 flake8 = [
     {file = "flake8-4.0.1-py2.py3-none-any.whl", hash = "sha256:479b1304f72536a55948cb40a32dce8bb0ffe3501e26eaf292c7e60eb5e0428d"},
     {file = "flake8-4.0.1.tar.gz", hash = "sha256:806e034dda44114815e23c16ef92f95c91e4c71100ff52813adf7132a6ad870d"},
+]
+honcho = [
+    {file = "honcho-1.1.0-py2.py3-none-any.whl", hash = "sha256:a4d6e3a88a7b51b66351ecfc6e9d79d8f4b87351db9ad7e923f5632cc498122f"},
+    {file = "honcho-1.1.0.tar.gz", hash = "sha256:c5eca0bded4bef6697a23aec0422fd4f6508ea3581979a3485fc4b89357eb2a9"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
