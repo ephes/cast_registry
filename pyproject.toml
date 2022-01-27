@@ -22,6 +22,9 @@ honcho = "^1.1.0"
 [tool.black]
 line-length = 119
 
+[tool.isort]
+profile = "black"
+
 [tool.flake8]
 statistics = "True"
 ignore = ["D203" , "W503"]

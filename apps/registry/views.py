@@ -1,15 +1,19 @@
 from dataclasses import dataclass
 
+from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model
-from django.views.decorators.http import require_GET, require_POST, require_http_methods
-
+from django.shortcuts import redirect, render
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from faker import Faker
 
-from .forms import OddNumberForm, DomainForm
+from .forms import DomainForm, OddNumberForm
 from .models import Domain
+
+
+@require_GET
+def home(request: HttpRequest) -> HttpResponse:
+    return render(request, "home.html")
 
 
 @require_GET
@@ -83,7 +87,9 @@ def create_domain(request: HttpRequest) -> HttpResponse:
     else:
         return redirect("list_domains")
 
+
 state = 0
+
 
 @require_GET
 def list_domains(request: HttpRequest) -> HttpResponse:
