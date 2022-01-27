@@ -21,7 +21,7 @@ repos:
     rev: 21.8b0
     hooks:
       - id: black
-        language_version: python3.10
+        language_version: python3.9
 
   - repo: https://github.com/timothycrosley/isort
     # isort config is in setup.cfg
@@ -34,6 +34,4 @@ repos:
     rev: 3.9.2
     hooks:
       - id: flake8
-        entry: pflake8
         language_version: python3
-        additional_dependencies: [pyproject-flake8]
