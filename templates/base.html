@@ -20,6 +20,13 @@
     -->
   <body hx-ext="debug, event-header">
     <header>
+      {% if messages %}
+        <article>
+          {% for message in messages %}
+            <aside>{{message}}</aside>
+          {% endfor %}
+        </article>
+      {% endif %}
       <nav>
         <h1>
           <a href="/">
@@ -45,6 +52,7 @@
         </ul>
       </nav>
     </header>
+
     <main id="main">
       {% block main %}{% endblock %}
     </main>
