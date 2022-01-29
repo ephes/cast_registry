@@ -19,6 +19,7 @@ django-debug-toolbar = "^3.2.4"
 pyproject-flake8 = "^0.0.1-alpha.2"
 Faker = "^11.3.0"
 honcho = "^1.1.0"
+djhtml = "^1.4.11"
 
 [tool.black]
 line-length = 119

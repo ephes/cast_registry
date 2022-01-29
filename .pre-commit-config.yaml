@@ -37,3 +37,8 @@ repos:
         entry: pflake8
         language_version: python3
         additional_dependencies: [pyproject-flake8]
+  - repo: https://github.com/rtts/djhtml
+    rev: "main"  # replace with the latest tag on GitHub
+    hooks:
+      - id: djhtml
+        args: [-t, "2"]

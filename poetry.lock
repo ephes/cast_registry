@@ -310,6 +310,17 @@ python-versions = ">=3.7"
 Django = ">=2.2"
 
 [[package]]
+name = "djhtml"
+version = "1.4.11"
+description = "Django/Jinja template indenter"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.extras]
+dev = ["black", "flake8", "isort", "nox", "pre-commit"]
+
+[[package]]
 name = "entrypoints"
 version = "0.3"
 description = "Discover and load entry points from installed packages."
@@ -1261,7 +1272,7 @@ test = ["websockets"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "daef8424f9099dfd4ece7f475684e8fe0a5d45e9a01a2e8b4ed2f183e1fd5560"
+content-hash = "a288cbbef9cfd10480c6371db3af796f1b7775e81fe6982a417d7674a40fdd84"
 
 [metadata.files]
 anyio = [
@@ -1466,6 +1477,9 @@ django-extensions = [
 django-htmx = [
     {file = "django-htmx-1.8.0.tar.gz", hash = "sha256:a8d41e74b907b9b9491fc9af99cf9a4a2879f9e9eee26592d4baf84f5f5982e5"},
     {file = "django_htmx-1.8.0-py3-none-any.whl", hash = "sha256:f84d10d346e7862cc46f25204ec3cddd8d48b0a93f3f7c234d1f75fa62bbea8a"},
+]
+djhtml = [
+    {file = "djhtml-1.4.11.tar.gz", hash = "sha256:1b0b3d7c4d7207ec729d4720b3b5aa632d220bbee8df2f711d17457a2ce1ebc9"},
 ]
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
