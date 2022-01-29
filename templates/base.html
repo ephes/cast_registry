@@ -29,17 +29,17 @@
       <ul>
           {% if not request.user.is_authenticated %}
               <li>
-                  <a href="/accounts/signup/">sign up</a>
+                  <a href="{% url 'account_signup' %}">sign up</a>
               </li>
               <li>
-                <a href="/accounts/login/">login</a>
+                <a href="{% url 'account_login' %}">login</a>
               </li>
           {%  else %}
               <li>
               <a href="/accounts/profile/">{{ request.user.username }}</a>
               </li>
               <li>
-                  <a href="/accounts/logout/">logout</a>
+                  <a href="{% url 'account_logout' %}">logout</a>
               </li>
           {% endif %}
       </ul>
