@@ -23,13 +23,25 @@
     <nav>
       <h1>
         <a href="/">
-          Register your Podcast
+          Register your Podcast (Logo)
         </a>
       </h1>
       <ul>
-        <li>
-          <a href="/sites/">Your sites</a>
-        </li>
+          {% if not request.user.is_authenticated %}
+              <li>
+                  <a href="/accounts/signup/">sign up</a>
+              </li>
+              <li>
+                <a href="/accounts/login/">login</a>
+              </li>
+          {%  else %}
+              <li>
+              <a href="/accounts/profile/">{{ request.user.username }}</a>
+              </li>
+              <li>
+                  <a href="/accounts/logout/">logout</a>
+              </li>
+          {% endif %}
       </ul>
     </nav>
   </header>
