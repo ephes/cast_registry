@@ -30,6 +30,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
 
 # Application definition
 
@@ -37,6 +41,9 @@ INSTALLED_APPS = [
     # first party apps
     "apps.registry.apps.RegistryConfig",
     # third party apps
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
     "debug_toolbar",
     "django_extensions",
     "django_htmx",
@@ -44,10 +51,13 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sessions",
+    "django.contrib.sites",
     "django.contrib.staticfiles",
 ]
+
+LOGIN_REDIRECT_URL = "/"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

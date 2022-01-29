@@ -17,8 +17,11 @@ urlpatterns = [
     path("demo/", csrf_demo),
     path("demo/checker/", csrf_demo_checker),
     path("partial-rendering/", partial_rendering),
-    path("__debug__/", include("debug_toolbar.urls")),
     path("domain/create/", create_domain, name="create_domain"),
     path("domain/", list_domains, name="list_domains"),
     path("messages/", messages, name="messages"),
+    # debug toolbar
+    path("__debug__/", include("debug_toolbar.urls")),
+    # allauth
+    path("accounts/", include("allauth.urls")),
 ]

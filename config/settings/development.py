@@ -8,10 +8,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
-
 from .base import *  # noqa
-
-DEBUG = True
 
 # for development, we don't need password validation
 AUTH_PASSWORD_VALIDATORS = []
+
+DEBUG = True
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
