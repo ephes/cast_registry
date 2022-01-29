@@ -6,3 +6,6 @@ __pycache__
 
 # Jupyter
 .ipynb_checkpoints
+
+# Database
+db.sqlite3
