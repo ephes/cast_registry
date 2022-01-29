@@ -27,7 +27,7 @@
         </a>
       </h1>
       <ul>
-          {% if not request.user.is_authenticated %}
+          {% if not user.is_authenticated %}
               <li>
                   <a href="{% url 'account_signup' %}">sign up</a>
               </li>
@@ -36,7 +36,7 @@
               </li>
           {%  else %}
               <li>
-              <a href="/accounts/profile/">{{ request.user.username }}</a>
+              <a href="/accounts/profile/">{{ user.username }}</a>
               </li>
               <li>
                   <a href="{% url 'account_logout' %}">logout</a>
