@@ -18,20 +18,20 @@
       variable rather than a rendered HTML <input>.
     -->
     <form hx-post="/demo/checker/"
-          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-          hx-target="#result">
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      hx-target="#result">
       <label for="id_number">
         Number:
       </label>
       <input id="id_number"
-             name="number"
-             type="text"
-             placeholder=""></input>
+        name="number"
+        type="text"
+        placeholder=""></input>
       <button type="submit">
         Check if odd
       </button>
     </p>
-    </form>
+  </form>
   </section>
   <section>
     <p id="result"><em>Awaiting interaction...</em></p>
