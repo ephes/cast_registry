@@ -9,6 +9,7 @@ from apps.registry.views import (
     list_domains,
     messages,
     partial_rendering,
+    register,
 )
 
 urlpatterns = [
@@ -20,6 +21,7 @@ urlpatterns = [
     path("domain/create/", create_domain, name="create_domain"),
     path("domain/", list_domains, name="list_domains"),
     path("messages/", messages, name="messages"),
+    path("register/", register, name="register"),
     # debug toolbar
     path("__debug__/", include("debug_toolbar.urls")),
     # allauth
