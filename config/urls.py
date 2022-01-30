@@ -3,27 +3,23 @@ from django.urls import include, path
 
 from apps.registry.views import (
     create_domain,
-    csrf_demo,
-    csrf_demo_checker,
+    deploy_progress,
     fade_out,
     home,
     list_domains,
-    messages,
-    partial_rendering,
     register,
+    show_messages,
 )
 
 urlpatterns = [
     path("", home),
     path("admin/", admin.site.urls),
-    path("demo/", csrf_demo),
-    path("demo/checker/", csrf_demo_checker),
-    path("partial-rendering/", partial_rendering),
     path("domain/create/", create_domain, name="create_domain"),
     path("domain/", list_domains, name="list_domains"),
-    path("messages/", messages, name="messages"),
+    path("messages/", show_messages, name="messages"),
     path("register/", register, name="register"),
     path("fade_out/", fade_out, name="fade_out"),
+    path("deploy-progress/<int:domain_id>/", deploy_progress, name="deploy_progress"),
     # debug toolbar
     path("__debug__/", include("debug_toolbar.urls")),
     # allauth

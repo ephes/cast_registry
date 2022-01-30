@@ -1,7 +1,9 @@
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect, render
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -15,9 +17,28 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-@require_GET
 def register(request: HttpRequest) -> HttpResponse:
-    return render(request, "register.html")
+    if request.method == "POST":
+        form = DomainForm(request.POST)
+        if form.is_valid():
+            domain = form.save(commit=False)
+            domain.owner = request.user
+            domain.save()
+            messages.add_message(request, messages.INFO, "Domain registered successfully")
+            success_url = reverse("deploy_progress", kwargs={"domain_id": domain.pk})
+            return HttpResponseRedirect(success_url)
+    else:
+        form = DomainForm(initial={"fqdn": "yourpodcast.staging.django-cast.com"})
+    context = {"form": form}
+    return render(request, "register.html", context=context)
+
+
+@login_required
+def deploy_progress(request: HttpRequest, domain_id: int) -> HttpResponse:
+    domain = get_object_or_404(Domain, pk=domain_id)
+    if domain.owner != request.user:
+        return HttpResponse(status=403)
+    return render(request, "deploy_progress.html")
 
 
 @csrf_exempt
@@ -61,7 +82,7 @@ def list_domains(request: HttpRequest) -> HttpResponse:
 
 
 @require_GET
-def messages(request: HttpRequest) -> HttpResponse:
+def show_messages(request: HttpRequest) -> HttpResponse:
     global state
     body = f"""
     hello world {state}

@@ -1,4 +1,13 @@
 {% extends "base.html" %}
 {% block main %}
-  <p>Das hier ist jetzt main von register</p>
+  <section>
+    <form post="{% url 'register' %}">
+      <header>
+        <h2>Register your Podcast</h2>
+      </header>
+      {% csrf_token %}
+      {{ form }}
+      <button type="submit">Submit</button>
+    </form>
+  </section>
 {% endblock %}
