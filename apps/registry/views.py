@@ -59,11 +59,12 @@ def deploy_state(request: HttpRequest, domain_id: int, deployment_id: int) -> Ht
         current_step = deployment.steps[0].name
     else:
         current_step = "Starting deployment..."
-    html = f"<p>{current_step}</p>"
+    html = f"<aside>{current_step}</aside>"
     if deployment.finished is None:
         return HttpResponse(status=200, content=html)
     else:
-        return HttpResponse(status=HTMX_STOP_POLLING)
+        html = "<aside>Deployment is fertig!</aside>"
+        return HttpResponse(status=HTMX_STOP_POLLING, content=html)
 
 
 @csrf_exempt
