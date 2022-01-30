@@ -21,7 +21,12 @@
   <body hx-ext="debug, event-header">
     <header>
       {% if messages %}
-        <article>
+        <article
+          class="fade-me-out"
+          hx-delete="{% url 'fade_out' %}"
+          hx-swap="outerHTML swap:1s"
+          hx-trigger="click, keyup[key=='Escape'] from:body"
+        >
           {% for message in messages %}
             <aside>{{message}}</aside>
           {% endfor %}
@@ -30,7 +35,7 @@
       <nav>
         <h1>
           <a href="/">
-            Register your Podcast (Logo)
+            <img alt="two people recording a podcast" src="{% static 'podcast_monochromatic.svg' %}" height="200"></img>
           </a>
         </h1>
         <ul>
@@ -52,7 +57,6 @@
         </ul>
       </nav>
     </header>
-
     <main id="main">
       {% block main %}{% endblock %}
     </main>

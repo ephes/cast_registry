@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 {% block main %}
   <section>
-    <p>Das hier ist jetzt main</p>
-    <section>
-      <aside>
-        <h3>Registriere hier deinen Podcast</h3>
-        <p>Ein bisschen Blindtext bla blub blubber.</p>
-        <p>
-          <a href="{% url 'register' %}"><em>Zur Registrierung</em></a>
-        </p>
-      </aside>
-    </section>
+    <aside>
+      <h3>Registriere hier deinen Podcast</h3>
+      <p>Ein bisschen Blindtext bla blub blubber.</p>
+      <p>
+        <a href="{% url 'register' %}"><em>Zur Registrierung</em></a>
+      </p>
+    </aside>
   </section>
 {% endblock %}

@@ -42,6 +42,12 @@
     }
 }
 
+/* htmx */
+.fade-me-out.htmx-swapping {
+    opacity: 0;
+    transition: opacity 1s ease-out;
+}
+
 /* Layout */
 article aside {
     background: var(--color-secondary-accent);
@@ -64,7 +70,7 @@ header,
 main {
     margin: 0 auto;
     max-width: var(--width-content);
-    padding: 3rem 1rem;
+    padding: 1rem 1rem;
 }
 
 hr {
@@ -141,7 +147,7 @@ nav {
     display: flex;
     font-weight: bold;
     justify-content: space-between;
-    margin-bottom: 7rem;
+    margin-bottom: 0rem;
 }
 
 nav ul {

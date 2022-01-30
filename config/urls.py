@@ -5,6 +5,7 @@ from apps.registry.views import (
     create_domain,
     csrf_demo,
     csrf_demo_checker,
+    fade_out,
     home,
     list_domains,
     messages,
@@ -22,6 +23,7 @@ urlpatterns = [
     path("domain/", list_domains, name="list_domains"),
     path("messages/", messages, name="messages"),
     path("register/", register, name="register"),
+    path("fade_out/", fade_out, name="fade_out"),
     # debug toolbar
     path("__debug__/", include("debug_toolbar.urls")),
     # allauth

@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from faker import Faker
 
@@ -21,6 +22,11 @@ def home(request: HttpRequest) -> HttpResponse:
 @require_GET
 def register(request: HttpRequest) -> HttpResponse:
     return render(request, "register.html")
+
+
+@csrf_exempt
+def fade_out(request: HttpRequest) -> HttpResponse:
+    return HttpResponse(status=200, content="")
 
 
 @require_GET
