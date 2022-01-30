@@ -3,7 +3,12 @@
   <section>
     <h1>Deployment Progress</h1>
     <p>
-      The deployment is currently in progress.
+      The deployment is currently in progress for {{ domain }}.
+    </p>
+    <p
+      hx-get="{% url 'deploy_state' domain.pk deployment_id %}"
+      hx-trigger="every 1s">
+        Progress Steps..
     </p>
   </section>
 {% endblock %}

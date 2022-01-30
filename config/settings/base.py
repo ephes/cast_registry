@@ -181,3 +181,8 @@ IPYTHON_KERNEL_DISPLAY_NAME = "Django Kernel"
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+# 4. Project Settings
+
+DEPLOY_SERVICE_TOKEN = env("DEPLOY_SERVICE_TOKEN", default=None)
+
