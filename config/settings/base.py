@@ -13,8 +13,12 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import sys
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / ".env")
 
 # make sure our apps directory is on the python path
 sys.path.append(str(BASE_DIR / "apps"))
