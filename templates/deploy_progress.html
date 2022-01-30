@@ -7,8 +7,12 @@
     </p>
     <p
       hx-get="{% url 'deploy_state' domain.pk deployment_id %}"
-      hx-trigger="every 1s">
-        Progress Steps..
+      hx-trigger="every 1s"
+      hx-target="#progress-end"
+      hx-swap="beforebegin"
+    >
+      Progress Steps..
     </p>
+    <div id="progress-end"></div>
   </section>
 {% endblock %}
