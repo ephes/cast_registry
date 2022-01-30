@@ -1,15 +1,11 @@
-from dataclasses import dataclass
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from faker import Faker
+from django.views.decorators.http import require_GET, require_POST
 
-from .forms import DomainForm, OddNumberForm
+from .forms import DomainForm
 from .models import Domain
 
 
