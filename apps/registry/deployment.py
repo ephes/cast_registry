@@ -1,3 +1,5 @@
+import secrets
+import string
 from datetime import datetime
 
 import httpx
@@ -42,13 +44,38 @@ class Deployment(BaseModel):
     context: dict = {}
 
 
+class DeploymentContext(BaseModel):
+    env: dict = {}
+
+
 class Client(BaseModel):
     base_url: str = settings.DEPLOY_BASE_URL
     headers: dict = {"authorization": f"Bearer {settings.DEPLOY_SERVICE_TOKEN}"}
 
-    def start_deployment(self) -> int:
+    @staticmethod
+    def get_deployment_context(fqdn: str) -> DeploymentContext:
+        alphabet = string.ascii_letters + string.digits
+        database_password = "".join(secrets.choice(alphabet) for i in range(20))
+        secret_key = "".join(secrets.choice(alphabet) for i in range(32))
+        underscored_fqdn = fqdn.replace(".", "_")
+        site_id = f"cast_{underscored_fqdn}"
+        env = {
+            "fqdn": fqdn,
+            "site_id": site_id,
+            "user_name": "cast_1",
+            "database_name": site_id,
+            "database_user": site_id,
+            "database_password": database_password,
+            "secret_key": secret_key,
+            "port": 10001,
+            "settings_file_name": site_id,
+        }
+        return DeploymentContext(env=env)
+
+    def start_deployment(self, domain) -> int:
+        context = self.get_deployment_context(domain.fqdn)
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
-            r = client.post("deployments/")
+            r = client.post("deployments/", json=context.dict())
         deployment_id = int(r.json()["id"])
         return deployment_id
 
