@@ -19,4 +19,5 @@ SECRET_KEY = ""
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 # remember to set this to your expected hostnames
-ALLOWED_HOSTS = []
+ALLOWED_HOST = env("ALLOWED_HOST")
+ALLOWED_HOSTS = [ALLOWED_HOST]
