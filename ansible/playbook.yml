@@ -32,7 +32,7 @@
     - name: Git checkout repository
       git:
         repo: "https://github.com/ephes/cast_registry"
-        version: "4-make-it-deployable"
+        version: "main"
         dest: "{{ site_path }}"
       become: true
       become_user: "{{ username }}"
