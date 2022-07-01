@@ -21,3 +21,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 # remember to set this to your expected hostnames
 ALLOWED_HOST = env("ALLOWED_HOST")
 ALLOWED_HOSTS = [ALLOWED_HOST]
+
+# static files
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa F405"
