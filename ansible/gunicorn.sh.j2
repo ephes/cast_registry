@@ -1,0 +1,4 @@
+#!/bin/bash
+gunicorn_path=$(find {{ home_path }}/.cache/pypoetry/virtualenvs -name "gunicorn" | grep -v lib)
+cd {{ site_path }}
+${gunicorn_path} --access-logfile - --error-logfile - -b 127.0.0.1:{{ port }} config.wsgi
