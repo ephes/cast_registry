@@ -188,3 +188,6 @@ INTERNAL_IPS = [
 
 DEPLOY_BASE_URL = env("DEPLOY_BASE_URL", default=None)
 DEPLOY_SERVICE_TOKEN = env("DEPLOY_SERVICE_TOKEN", default=None)
+
+# site
+SITE_ID = 1
