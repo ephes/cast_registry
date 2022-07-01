@@ -1,0 +1,59 @@
+- hosts: staging
+  vars:
+    - username: deploy
+    - home_path: "/home/{{ username }}"
+    - python_path: "{{ home_path }}/site/venv/bin/python"  # deploy.py.j2
+    - ansible_python: "{{ home_path }}/ansible_venv/bin/python"
+    - ansible_playbook_path: "{{ home_path }}/ansible_venv/bin/ansible-playbook"
+    - service_name: "registry"
+    - service_path: "{{ home_path }}/site/services/{{ service_name }}"
+    - service_remove_name: "registry_remove"
+    - service_remove_path: "{{ home_path }}/site/services/{{ service_remove_name }}"
+
+  tasks:
+    - name: "Include secret vars"
+      include_vars: secrets.yml
+
+    - name: Create service directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ username }}"
+      loop:
+        - "{{ service_path }}"
+        - "{{ service_remove_path }}"
+
+    - name: Copy files to deploy server
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ username }}"
+      loop:
+        - { src: "secrets.yml", dest: "{{ service_path }}/secrets.yml" }
+        - { src: "secrets.yml", dest: "{{ service_remove_path }}/secrets.yml" }
+        - { src: "playbook.yml", dest: "{{ service_path }}/playbook.yml" }
+        - { src: "playbook_remove.yml", dest: "{{ service_remove_path }}/playbook.yml" }
+        - { src: "traefik.template.j2", dest: "{{ service_path }}/traefik.template.j2" }
+        - { src: "inventory", dest: "{{ service_path }}" }
+        - { src: "inventory", dest: "{{ service_remove_path }}" }
+        - { src: "systemd.service.j2", dest: "{{ service_path }}/systemd.service.j2" }
+        - { src: "env.template.j2", dest: "{{ service_path }}/env.template.j2" }
+        - { src: "gunicorn.sh.j2", dest: "{{ service_path }}/gunicorn.sh.j2" }
+        - { src: "bash_profile.j2", dest: "{{ service_path }}/bash_profile.j2" }
+        - { src: "vars.yml", dest: "{{ service_path }}/vars.yml" }
+        - { src: "vars.yml", dest: "{{ service_remove_path }}/vars.yml" }
+
+    - name: Create files from templates
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+        owner: "{{ item.owner }}"
+      loop:
+        - { src: "vault_password.template.j2", dest: "{{ service_path }}/.vault_password", mode: "0400", owner: "{{ username }}" }
+        - { src: "vault_password.template.j2", dest: "{{ service_remove_path }}/.vault_password", mode: "0400", owner: "{{ username }}"}
+        - { src: "config.json.j2", dest: "{{ service_path }}/config.json", mode: "0400", owner: "{{ username }}" }
+        - { src: "config_remove.json.j2", dest: "{{ service_remove_path }}/config.json", mode: "0400", owner: "{{ username }}"}
+        - { src: "deploy.py.j2", dest: "{{ service_path }}/deploy.py", mode: "0500", owner: "{{ username }}"}
+        - { src: "deploy.py.j2", dest: "{{ service_remove_path }}/deploy.py", mode: "0500", owner: "{{ username }}"}
+        - { src: "sudoers.template.j2", dest: "/etc/sudoers.d/cast_registry_as_root", mode: "0440", owner: "root" }

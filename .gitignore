@@ -14,3 +14,6 @@ databases
 # Environment
 .env
 .env.swp
+
+# ansible vault
+.vault_password

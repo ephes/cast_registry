@@ -65,6 +65,7 @@ LOGIN_REDIRECT_URL = "/"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -143,7 +144,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-
+STATIC_ROOT = str(BASE_DIR / "staticfiles")
 STATIC_URL = "static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
@@ -187,3 +188,6 @@ INTERNAL_IPS = [
 
 DEPLOY_BASE_URL = env("DEPLOY_BASE_URL", default=None)
 DEPLOY_SERVICE_TOKEN = env("DEPLOY_SERVICE_TOKEN", default=None)
+
+# site
+SITE_ID = 1
