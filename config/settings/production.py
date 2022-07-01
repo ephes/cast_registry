@@ -24,4 +24,3 @@ ALLOWED_HOSTS = [ALLOWED_HOST]
 
 # static files
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa F405"
