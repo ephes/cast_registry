@@ -1,0 +1,91 @@
+- hosts: localhost
+  vars:
+    - cast_user: cast
+    - host_home: "/home/{{ cast_user }}"
+    - site_path: "{{ host_home }}/site"
+    - settings_dir: "{{ site_path }}/config/settings/sites"
+  tasks:
+    - name: Add the unix user with a bash shell
+      user:
+        name: "{{ user_name }}"
+        shell: /bin/bash
+
+    - name: Create a new postgres database
+      # install role first:
+      # ansible-galaxy collection install community.postgresql
+      community.general.postgresql_db:
+        name: "{{ database_name }}"
+        state: present
+      become: true
+      become_user: postgres
+
+    - name: Create a new postgres user
+      community.general.postgresql_user:
+        db: "{{ database_name }}"
+        name: "{{ database_user }}"
+        password: "{{ database_password }}"
+        state: present
+      become: true
+      become_user: postgres
+
+    - name: Create directory for django settings file
+      # FIXME move to cast_hosting playbook
+      file:
+        path: "{{ settings_dir }}"
+        state: directory
+        owner: "{{ cast_user }}"
+
+    - name: Create django settings module
+      # FIXME move to cast_hosting playbook
+      template:
+        src: settings_init.template.j2
+        dest: "{{ settings_dir }}/__init__.py"
+        owner: "{{ cast_user }}"
+        mode: "0644"
+
+    - name: Create django settings file
+      template:
+        src: settings.template.j2
+        dest: "{{ settings_dir }}/{{ settings_file_name }}.py"
+        owner: "{{ user_name }}"
+        mode: "0600"
+
+    - name: Find path to poetry venv interpreter
+      shell: "find {{ host_home }}/.cache/pypoetry/virtualenvs -name python | grep bin"
+      register: find_python
+
+    - name: Set python bin path
+      set_fact:
+        python_bin_path={{ find_python.stdout }}
+
+    - name: Run django migrations
+      shell: "DJANGO_SETTINGS_MODULE=config.settings.sites.{{ settings_file_name }} {{ python_bin_path }} manage.py migrate"
+      args:
+        chdir: "{{ site_path }}"
+      become: true
+      become_user: "{{ user_name }}"
+
+    - name: Find path to gunicorn
+      shell: "find {{ host_home }}/.cache/pypoetry/virtualenvs -name gunicorn | grep -v lib"
+      register: find_gunicorn
+
+    - name: Set gunicorn bin path
+      set_fact:
+        gunicorn_bin_path={{ find_gunicorn.stdout }}
+
+    - name: Create a unit file for gunicorn systemd service
+      template:
+        src: systemd.service.j2
+        dest: "/etc/systemd/system/{{ site_id }}.service"
+        mode: "0644"
+
+    - name: Create a config file for traefik loadbalancer
+      template:
+        src: traefik.template.j2
+        dest: "/etc/traefik/dynamic/{{ site_id }}.traefik.yml"
+        mode: "0644"
+
+    - name: Make sure cast gunicorn service is running
+      systemd:
+        state: restarted
+        name: "{{ site_id }}"

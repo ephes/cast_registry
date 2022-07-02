@@ -41,3 +41,16 @@ Migrate:
 ```shell
 $ python manage.py migrate
 ```
+
+# Services
+
+There are two preconfigured services for [fastdeploy](https://github.com/ephes/fastdeploy)
+living in the `ansible` directory:
+- registry
+- cast
+
+The registry service is used to deploy other things like cast hosting or wordpress services.
+It's deployed via:
+```
+$ ansible-playbook register.yml
+```
