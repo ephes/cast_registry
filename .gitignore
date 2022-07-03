@@ -17,3 +17,6 @@ databases
 
 # ansible vault
 .vault_password
+
+# coverage
+.coverage
