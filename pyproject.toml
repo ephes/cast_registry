@@ -27,6 +27,10 @@ Faker = "^11.3.0"
 honcho = "^1.1.0"
 djhtml = "^1.4.11"
 nb-black = "^1.0.7"
+pytest = "^7.1.2"
+pytest-django = "^4.5.2"
+pytest-sugar = "^0.9.4"
+coverage = "^6.4.1"
 
 [tool.black]
 line-length = 119
