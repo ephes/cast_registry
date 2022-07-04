@@ -3,7 +3,7 @@ from django.urls import reverse
 
 
 @pytest.mark.django_db
-def test_register_not_authenticated(client):
+def test_get_register_not_authenticated(client):
     url = reverse("register")
     r = client.get(url)
     assert r.status_code == 302
@@ -19,9 +19,25 @@ def user(django_user_model):
 
 
 @pytest.mark.django_db
-def test_register_authenticated(client, user):
+def test_get_register_authenticated(client, user):
     client.login(username=user.username, password=user._password)
     url = reverse("register")
     r = client.get(url)
     assert r.status_code == 200
     assert "form action" in r.content.decode("utf8")
+
+
+@pytest.mark.django_db
+def test_post_register_not_authenticated(client):
+    url = reverse("register")
+    r = client.post(url)
+    assert r.status_code == 302
+    assert "login" in r.url
+
+
+def test_post_register_authenticated(client, user):
+    client.login(username=user.username, password=user._password)
+    url = reverse("register")
+    r = client.post(url, data={"fqdn": "my.domain.staging.django-cast.com"})
+    assert r.status_code == 302
+    assert "deploy-progress" in r.url

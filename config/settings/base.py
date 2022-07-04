@@ -191,3 +191,6 @@ DEPLOY_SERVICE_TOKEN = env("DEPLOY_SERVICE_TOKEN", default=None)
 
 # site
 SITE_ID = 1
+
+# Deploy Client
+DEPLOY_CLIENT = "production"

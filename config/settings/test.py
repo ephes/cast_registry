@@ -9,3 +9,5 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from .base import *  # noqa
+
+DEPLOY_CLIENT = "test"
