@@ -20,3 +20,6 @@ databases
 
 # coverage
 .coverage
+
+# static files
+staticfiles
