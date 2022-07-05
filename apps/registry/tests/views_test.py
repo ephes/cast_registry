@@ -83,3 +83,29 @@ def test_get_deploy_progress_not_authorized(client, domain, other_user):
     url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": 1})
     r = client.get(url)
     assert r.status_code == 403
+
+
+@pytest.mark.django_db
+def test_get_deploy_state_not_authenticated(client):
+    url = reverse("deploy_state", kwargs={"domain_id": 1, "deployment_id": 1})
+    r = client.get(url)
+    assert r.status_code == 302
+    assert "login" in r.url
+
+
+@pytest.mark.django_db
+def test_get_deploy_state_authenticated(client, domain):
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 1})
+    r = client.get(url)
+    assert r.status_code == 200
+    assert "aside" in r.content.decode("utf8")
+
+
+@pytest.mark.django_db
+def test_get_deploy_state_not_authorized(client, domain, other_user):
+    client.login(username=other_user.username, password=other_user._password)
+    url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 1})
+    r = client.get(url)
+    assert r.status_code == 403

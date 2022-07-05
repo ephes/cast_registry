@@ -96,7 +96,7 @@ class TestClient:
         return 1
 
     def fetch_deployment(self, deployment_id) -> Deployment:
-        return Deployment({})
+        return Deployment(service_id=1, origin="test", user="foo", steps=[])
 
 
 if settings.DEPLOY_CLIENT == "test":
