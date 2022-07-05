@@ -67,3 +67,19 @@ def test_get_deploy_progress_authenticated(client, domain):
     r = client.get(url)
     assert r.status_code == 200
     assert domain.fqdn in r.content.decode("utf8")
+
+
+@pytest.fixture
+def other_user(django_user_model):
+    username, password = "user2", "password"
+    user = django_user_model.objects.create_user(username=username, password=password)
+    user._password = password
+    return user
+
+
+@pytest.mark.django_db
+def test_get_deploy_progress_not_authorized(client, domain, other_user):
+    client.login(username=other_user.username, password=other_user._password)
+    url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": 1})
+    r = client.get(url)
+    assert r.status_code == 403
