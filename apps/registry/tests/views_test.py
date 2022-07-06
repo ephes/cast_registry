@@ -1,7 +1,10 @@
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
+from ..deployment import Deployment
 from ..models import Domain
+from ..views import Messages, get_deployment_state_response
 
 
 @pytest.mark.django_db
@@ -89,3 +92,38 @@ def test_get_user_not_authorized(client, domain, other_user, url_name):
     url = reverse(url_name, kwargs={"domain_id": domain.pk, "deployment_id": 1})
     r = client.get(url)
     assert r.status_code == 403
+
+
+@pytest.fixture
+def deployment_params():
+    return dict(service_id=1, origin="registry", user="user1")
+
+
+def test_get_deployment_state_response_starting(deployment_params):
+    deployment = Deployment(**deployment_params)
+    response, sent = get_deployment_state_response(deployment, [])
+    assert response.status_code == 200
+    assert [Messages.START.value] == sent
+
+
+def test_get_deployment_state_response_finished(deployment_params):
+    deployment = Deployment(**deployment_params, finished=timezone.now())
+    response, sent = get_deployment_state_response(deployment, [Messages.START.value])
+    assert response.status_code == 286
+    assert [Messages.END.value] == sent
+
+
+def test_get_deployment_state_response_new_step(deployment_params):
+    new = "new step"
+    deployment = Deployment(**deployment_params, steps=[{"name": new}])
+    response, sent = get_deployment_state_response(deployment, [Messages.START.value])
+    assert response.status_code == 200
+    assert [new] == sent
+
+
+def test_get_deployment_state_response_no_new_step(deployment_params):
+    seen = "seen step"
+    deployment = Deployment(**deployment_params, steps=[{"name": seen}])
+    response, sent = get_deployment_state_response(deployment, [Messages.START.value, seen])
+    assert response.status_code == 200
+    assert [] == sent
