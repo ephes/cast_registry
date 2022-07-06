@@ -48,7 +48,7 @@ class DeploymentContext(BaseModel):
     env: dict = {}
 
 
-class Client(BaseModel):
+class ProductionClient(BaseModel):
     base_url: str = settings.DEPLOY_BASE_URL
     headers: dict = {"authorization": f"Bearer {settings.DEPLOY_SERVICE_TOKEN}"}
 
@@ -85,6 +85,24 @@ class Client(BaseModel):
         deployment = Deployment(**r.json())
         deployment.steps.sort(reverse=True)
         return deployment
+
+
+class TestClient:
+    @staticmethod
+    def get_deployment_context(fqdn: str) -> DeploymentContext:
+        return {}
+
+    def start_deployment(self, domain) -> int:
+        return 1
+
+    def fetch_deployment(self, deployment_id) -> Deployment:
+        return Deployment(service_id=1, origin="test", user="foo", steps=[])
+
+
+if settings.DEPLOY_CLIENT == "test":
+    Client = TestClient
+else:
+    Client = ProductionClient
 
 
 # def get_client():
