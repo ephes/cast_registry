@@ -28,8 +28,7 @@ def register(request: HttpRequest) -> HttpResponse:
             domain.owner = request.user
             domain.save()
             messages.add_message(request, messages.INFO, "Domain registered successfully")
-            client = Client()
-            deployment_id = client.start_deployment(domain)
+            deployment_id = domain.start_deployment()
             success_url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": deployment_id})
             return HttpResponseRedirect(success_url)
     else:

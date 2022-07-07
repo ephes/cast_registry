@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from .deployment import Client
+
 
 class Domain(models.Model):
     """
@@ -15,3 +17,8 @@ class Domain(models.Model):
 
     class Meta:
         ordering = ("fqdn",)
+
+    def start_deployment(self) -> int:
+        """Start a deployment for this domain"""
+        client = Client()
+        return client.start_deployment(self)
