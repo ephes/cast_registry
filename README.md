@@ -1,3 +1,20 @@
+# Typical Command Lines
+
+Run tests:
+```shell
+$ pytest
+```
+
+Run tests and show coverage:
+```shell
+$ coverage run && coverage html && open htmlcov/index.html
+```
+
+Mypy:
+```shell
+$ mypy apps/registry
+```
+
 # Create Database
 
 Create the database directory:
