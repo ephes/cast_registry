@@ -30,6 +30,8 @@ nb-black = "^1.0.7"
 pytest = "^7.1.2"
 pytest-django = "^4.5.2"
 coverage = "^6.4.1"
+mypy = "^0.961"
+django-stubs = {extras = ["compatible-mypy"], version = "^1.12.0"}
 
 [tool.black]
 line-length = 119
@@ -51,3 +53,16 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+branch = true
+source = ["apps"]
+omit = ["apps/registry/tests/*", "apps/registry/migrations"]
+command_line = "-m pytest"
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.development"
