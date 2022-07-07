@@ -189,3 +189,6 @@ SITE_ID = 1
 
 # Deploy Client
 DEPLOY_CLIENT = "production"
+
+# Location of root django.contrib.admin URL, use {% url 'admin:index' %}
+ADMIN_URL = r"^admin/"

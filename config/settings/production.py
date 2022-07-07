@@ -24,3 +24,6 @@ ALLOWED_HOSTS = [ALLOWED_HOST]
 
 # static files
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Custom Admin URL, use {% url 'admin:index' %}
+ADMIN_URL = env("DJANGO_ADMIN_URL")

@@ -1,10 +1,11 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 
 from apps.registry.views import deploy_progress, deploy_state, fade_out, home, register
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
     path("", home),
     path("register/", register, name="register"),
     path("fade_out/", fade_out, name="fade_out"),
