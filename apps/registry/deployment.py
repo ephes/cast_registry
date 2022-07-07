@@ -1,6 +1,8 @@
+import abc
 import secrets
 import string
 from datetime import datetime
+from enum import Enum
 
 import httpx
 from django.conf import settings
@@ -8,10 +10,10 @@ from pydantic import BaseModel
 
 
 class Step(BaseModel):
-    id: int | None
+    id: int | None = None
     name: str
-    started: datetime | None
-    finished: datetime | None
+    started: datetime | None = None
+    finished: datetime | None = None
     state: str = "pending"
     message: str = ""
 
@@ -33,30 +35,75 @@ class Step(BaseModel):
                 return True
 
 
+class SpecialSteps(Enum):
+    START = Step(id=0, name="Starting deployment...")
+    END = Step(id=-1, name="Deployment is done!")
+
+
+Steps = list[Step]
+Finished = bool
+
+
 class Deployment(BaseModel):
-    id: int | None
-    steps: list[Step] = []
-    service_id: int
-    origin: str
-    user: str
-    started: datetime | None
-    finished: datetime | None
+    id: int | None = None
+    steps: Steps = []
+    service_id: int = 1
+    origin: str = "test"
+    user: str = "test"
+    started: datetime | None = None
+    finished: datetime | None = None
     context: dict = {}
+
+    @property
+    def has_finished(self):
+        return self.finished is not None
+
+    @property
+    def steps_for_client(self):
+        steps = [SpecialSteps.START.value]
+        steps.extend(self.steps)
+        if self.has_finished:
+            steps.append(SpecialSteps.END.value)
+        return steps
+
+    def get_new_steps(self, seen) -> Steps:
+        seen_steps = set()
+        if seen is not None:
+            seen_steps = {s.id for s in seen.steps_for_client}
+        return [s for s in self.steps_for_client if s.id not in seen_steps]
 
 
 class DeploymentContext(BaseModel):
     env: dict = {}
 
 
-class ProductionClient(BaseModel):
-    base_url: str = settings.DEPLOY_BASE_URL
-    headers: dict = {"authorization": f"Bearer {settings.DEPLOY_SERVICE_TOKEN}"}
+class AbstractClient(abc.ABC):
+    @abc.abstractmethod
+    def start_deployment(self, domain) -> int:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fetch_deployment(self, deployment_id: int) -> Deployment:
+        raise NotImplementedError
+
+
+class ProductionClient(AbstractClient):
+    def __init__(
+        self,
+        *,
+        base_url: str = settings.DEPLOY_BASE_URL,
+        headers: dict | None = None,
+    ):
+        self.base_url = base_url
+        self.headers = headers
+        if self.headers is None:
+            self.headers = {"authorization": f"Bearer {settings.DEPLOY_SERVICE_TOKEN}"}
 
     @staticmethod
     def get_deployment_context(fqdn: str) -> DeploymentContext:
         alphabet = string.ascii_letters + string.digits
-        database_password = "".join(secrets.choice(alphabet) for i in range(20))
-        secret_key = "".join(secrets.choice(alphabet) for i in range(32))
+        database_password = "".join(secrets.choice(alphabet) for _ in range(20))
+        secret_key = "".join(secrets.choice(alphabet) for _ in range(32))
         underscored_fqdn = fqdn.replace(".", "_")
         site_id = f"cast_{underscored_fqdn}"
         env = {
@@ -87,26 +134,16 @@ class ProductionClient(BaseModel):
         return deployment
 
 
-class TestClient:
-    @staticmethod
-    def get_deployment_context(fqdn: str) -> DeploymentContext:
-        return {}
-
+class TestClient(AbstractClient):
     def start_deployment(self, domain) -> int:
         return 1
 
-    def fetch_deployment(self, deployment_id) -> Deployment:
+    def fetch_deployment(self, deployment_id: int) -> Deployment:
         return Deployment(service_id=1, origin="test", user="foo", steps=[])
 
 
+Client: type[AbstractClient]
 if settings.DEPLOY_CLIENT == "test":
     Client = TestClient
 else:
     Client = ProductionClient
-
-
-# def get_client():
-#     print("settings deploy base url: ", settings.DEPLOY_BASE_URL)
-#     base_url = settings.DEPLOY_BASE_URL
-#     headers = {"authorization": f"Bearer {settings.DEPLOY_SERVICE_TOKEN}"}
-#     return httpx.Client(headers=headers, base_url=base_url)
