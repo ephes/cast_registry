@@ -26,7 +26,7 @@ def register(request: HttpRequest) -> HttpResponse:
             domain.owner = request.user
             domain.save()
             messages.add_message(request, messages.INFO, "Domain registered successfully")
-            deployment_id = domain.start_deployment()
+            deployment_id = domain.start_deployment(request.session)
             success_url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": deployment_id})
             return HttpResponseRedirect(success_url)
     else:
@@ -58,7 +58,11 @@ def deploy_state(request: HttpRequest, domain_id: int, deployment_id: int) -> Ht
     domain = get_object_or_404(Domain, pk=domain_id)
     if domain.owner != request.user:
         return HttpResponse(status=403)
-    new_steps, finished = domain.get_new_steps(request.session, deployment_id)
+    try:
+        new_steps, finished = domain.get_new_steps(request.session, deployment_id)
+    except KeyError:
+        # deployment with deployment_id not in session
+        return HttpResponse(status=404)
     html = build_steps_html(new_steps)
     if finished:
         return HttpResponse(status=HTMX_STOP_POLLING, content=html)

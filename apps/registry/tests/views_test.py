@@ -47,21 +47,24 @@ def test_post_register_authenticated_invalid_form(client, user):
     assert "This field is required." in r.content.decode("utf8")
 
 
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "url_name, test_content",
-    [
-        ("deploy_progress", "staging.django-cast.com"),
-        ("deploy_state", "aside"),
-    ],
-)
-def test_get_login_required_with_domain_authenticated(client, domain, url_name, test_content):
+def test_get_login_required_deploy_progress_authenticated(client, domain):
     user = domain.owner
     client.login(username=user.username, password=user._password)
-    url = reverse(url_name, kwargs={"domain_id": domain.pk, "deployment_id": 1})
+    url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": 1})
     r = client.get(url)
     assert r.status_code == 200
-    assert test_content in r.content.decode("utf8")
+    assert "staging.django-cast.com" in r.content.decode("utf8")
+
+
+def test_get_login_required_deploy_state_authenticated(client, domain):
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 1})
+    steps = [SpecialSteps.START.value]
+    with patch("apps.registry.models.Domain.get_new_steps", return_value=(steps, False)):
+        r = client.get(url)
+    assert r.status_code == 200
+    assert "aside" in r.content.decode("utf8")
 
 
 @pytest.fixture
@@ -95,3 +98,10 @@ def test_get_deployment_state_finished_has_stop_polling_status(client, domain):
     with patch("apps.registry.models.Domain.get_new_steps", return_value=(steps, True)):
         r = client.get(url)
     assert r.status_code == 286
+
+
+def test_get_deployment_state_no_deployment_in_session(client, domain):
+    client.login(username=domain.owner.username, password=domain.owner._password)
+    url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 23})
+    r = client.get(url)
+    assert r.status_code == 404

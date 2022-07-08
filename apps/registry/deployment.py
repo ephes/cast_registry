@@ -53,6 +53,7 @@ class Deployment(BaseModel):
     started: datetime | None = None
     finished: datetime | None = None
     context: dict = {}
+    no_steps_yet: bool = False  # used to signal that self was just started
 
     @property
     def has_finished(self):
@@ -60,16 +61,16 @@ class Deployment(BaseModel):
 
     @property
     def steps_for_client(self):
+        if self.no_steps_yet:
+            return []
         steps = [SpecialSteps.START.value]
         steps.extend(self.steps)
         if self.has_finished:
             steps.append(SpecialSteps.END.value)
         return steps
 
-    def get_new_steps(self, seen) -> Steps:
-        seen_steps = set()
-        if seen is not None:
-            seen_steps = {s.id for s in seen.steps_for_client}
+    def get_new_steps(self, seen: "Deployment") -> Steps:
+        seen_steps = {s.id for s in seen.steps_for_client}
         return [s for s in self.steps_for_client if s.id not in seen_steps]
 
 
@@ -79,7 +80,7 @@ class DeploymentContext(BaseModel):
 
 class AbstractClient(abc.ABC):
     @abc.abstractmethod
-    def start_deployment(self, domain) -> int:
+    def start_deployment(self, domain) -> Deployment:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -119,12 +120,12 @@ class ProductionClient(AbstractClient):
         }
         return DeploymentContext(env=env)
 
-    def start_deployment(self, domain) -> int:
+    def start_deployment(self, domain) -> Deployment:
         context = self.get_deployment_context(domain.fqdn)
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
             r = client.post("deployments/", json=context.dict())
         deployment_id = int(r.json()["id"])
-        return deployment_id
+        return Deployment(id=deployment_id, no_steps_yet=True)
 
     def fetch_deployment(self, deployment_id: int) -> Deployment:
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
@@ -135,8 +136,8 @@ class ProductionClient(AbstractClient):
 
 
 class TestClient(AbstractClient):
-    def start_deployment(self, domain) -> int:
-        return 1
+    def start_deployment(self, domain) -> Deployment:
+        return Deployment(id=1, no_steps_yet=True)
 
     def fetch_deployment(self, deployment_id: int) -> Deployment:
         return Deployment(service_id=1, origin="test", user="foo", steps=[])

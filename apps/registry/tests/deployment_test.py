@@ -12,7 +12,7 @@ NOT_NEW = Step(id=2, name="not new")
 @pytest.mark.parametrize(
     "deployment, seen, expected",
     [
-        (Deployment(), None, [SpecialSteps.START.value]),  # no deployment seen before -> start step
+        (Deployment(), Deployment(no_steps_yet=True), [SpecialSteps.START.value]),  # no deployment seen before
         (Deployment(finished=timezone.now()), Deployment(), [SpecialSteps.END.value]),  # only finished step
         (Deployment(steps=[NEW]), Deployment(), [NEW]),  # new step
         (Deployment(steps=[NOT_NEW]), Deployment(steps=[NOT_NEW]), []),  # no new step -> []

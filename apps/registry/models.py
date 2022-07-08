@@ -20,14 +20,20 @@ class Domain(models.Model):
     class Meta:
         ordering = ("fqdn",)
 
-    def start_deployment(self) -> int:
-        """Start a deployment for this domain"""
-        client = Client()
-        return client.start_deployment(self)
-
     @staticmethod
+    def get_session_key_from_deployment_id(deployment_id: int) -> str:
+        return f"deployment_{deployment_id}"
+
+    def start_deployment(self, session: MutableMapping, client: AbstractClient = Client()) -> int:
+        """Start a deployment for this domain"""
+        deployment = client.start_deployment(self)
+        assert deployment.id is not None
+        key = self.get_session_key_from_deployment_id(deployment.id)
+        session[key] = deployment.json()
+        return deployment.id
+
     def get_new_steps(
-        session: MutableMapping, deployment_id: int, client: AbstractClient = Client()
+        self, session: MutableMapping, deployment_id: int, client: AbstractClient = Client()
     ) -> tuple[Steps, Finished]:
         """
         Fetch already seen deployment for this deployment_id from session
@@ -37,10 +43,8 @@ class Domain(models.Model):
         encode datetime objects like deployment.finished. Therefore, pydantic
         deployment.json() is used. Not pretty, but it works.
         """
-        deployment_key = f"deployment_{deployment_id}"
-        seen_json = seen_deployment = session.get(deployment_key)
-        if seen_json is not None:
-            seen_deployment = Deployment.parse_raw(seen_json)
+        deployment_key = self.get_session_key_from_deployment_id(deployment_id)
+        seen_deployment = Deployment.parse_raw(session[deployment_key])
         deployment = client.fetch_deployment(deployment_id)
         new_steps = deployment.get_new_steps(seen_deployment)
         if deployment.has_finished:
