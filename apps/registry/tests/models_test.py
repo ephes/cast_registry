@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from ..deployment import Deployment, SpecialSteps
 
 
@@ -25,3 +27,12 @@ def test_get_new_steps(domain):
     # start step is already seen
     new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
     assert new_steps == []
+
+
+def test_finished_deployment_is_removed_from_session(domain):
+    deployment = Deployment(id=1, finished=timezone.now())
+    deployment_key = f"deployment_{deployment.id}"
+    session = {deployment_key: deployment.json()}
+    new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
+    assert finished
+    assert list(session.values()) == []

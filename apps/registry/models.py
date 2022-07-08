@@ -43,5 +43,8 @@ class Domain(models.Model):
             seen_deployment = Deployment.parse_raw(seen_json)
         deployment = client.fetch_deployment(deployment_id)
         new_steps = deployment.get_new_steps(seen_deployment)
-        session[deployment_key] = deployment.json()
+        if deployment.has_finished:
+            del session[deployment_key]
+        else:
+            session[deployment_key] = deployment.json()
         return new_steps, deployment.has_finished
