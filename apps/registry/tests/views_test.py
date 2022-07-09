@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-from ..deployment import SpecialSteps
+from ..fastdeploy import SpecialSteps
 
 
 @pytest.mark.django_db

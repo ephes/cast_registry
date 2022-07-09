@@ -3,7 +3,7 @@ from typing import MutableMapping
 from django.conf import settings
 from django.db import models
 
-from .deployment import AbstractClient, Client, Deployment, Finished, Steps
+from .fastdeploy import AbstractClient, Client, Finished, RemoteDeployment, Steps
 
 
 class Domain(models.Model):
@@ -44,7 +44,7 @@ class Domain(models.Model):
         deployment.json() is used. Not pretty, but it works.
         """
         deployment_key = self.get_session_key_from_deployment_id(deployment_id)
-        seen_deployment = Deployment.parse_raw(session[deployment_key])
+        seen_deployment = RemoteDeployment.parse_raw(session[deployment_key])
         deployment = client.fetch_deployment(deployment_id)
         new_steps = deployment.get_new_steps(seen_deployment)
         if deployment.has_finished:

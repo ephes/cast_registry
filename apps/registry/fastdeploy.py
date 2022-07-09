@@ -44,7 +44,7 @@ Steps = list[Step]
 Finished = bool
 
 
-class Deployment(BaseModel):
+class RemoteDeployment(BaseModel):
     id: int | None = None
     steps: Steps = []
     service_id: int = 1
@@ -69,7 +69,7 @@ class Deployment(BaseModel):
             steps.append(SpecialSteps.END.value)
         return steps
 
-    def get_new_steps(self, seen: "Deployment") -> Steps:
+    def get_new_steps(self, seen: "RemoteDeployment") -> Steps:
         seen_steps = {s.id for s in seen.steps_for_client}
         return [s for s in self.steps_for_client if s.id not in seen_steps]
 
@@ -80,11 +80,11 @@ class DeploymentContext(BaseModel):
 
 class AbstractClient(abc.ABC):
     @abc.abstractmethod
-    def start_deployment(self, domain) -> Deployment:
+    def start_deployment(self, domain) -> RemoteDeployment:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_deployment(self, deployment_id: int) -> Deployment:
+    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
         raise NotImplementedError
 
 
@@ -120,27 +120,27 @@ class ProductionClient(AbstractClient):
         }
         return DeploymentContext(env=env)
 
-    def start_deployment(self, domain) -> Deployment:
+    def start_deployment(self, domain) -> RemoteDeployment:
         context = self.get_deployment_context(domain.fqdn)
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
             r = client.post("deployments/", json=context.dict())
         deployment_id = int(r.json()["id"])
-        return Deployment(id=deployment_id, no_steps_yet=True)
+        return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment_id: int) -> Deployment:
+    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
             r = client.get(f"deployments/{deployment_id}")
-        deployment = Deployment(**r.json())
+        deployment = RemoteDeployment(**r.json())
         deployment.steps.sort(reverse=True)
         return deployment
 
 
 class TestClient(AbstractClient):
-    def start_deployment(self, domain) -> Deployment:
-        return Deployment(id=1, no_steps_yet=True)
+    def start_deployment(self, domain) -> RemoteDeployment:
+        return RemoteDeployment(id=1, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment_id: int) -> Deployment:
-        return Deployment(service_id=1, origin="test", user="foo", steps=[])
+    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
+        return RemoteDeployment(service_id=1, origin="test", user="foo", steps=[])
 
 
 Client: type[AbstractClient]

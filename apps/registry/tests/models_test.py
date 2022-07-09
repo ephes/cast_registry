@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from ..deployment import Deployment, SpecialSteps
+from ..fastdeploy import RemoteDeployment, SpecialSteps
 
 
 class StubClient:
@@ -16,13 +16,13 @@ class StubClient:
 
 def test_domain_start_deployment_puts_deployment_in_session(domain):
     session = {}
-    deployment = Deployment(id=1, no_steps_yet=True)
+    deployment = RemoteDeployment(id=1, no_steps_yet=True)
     _ = domain.start_deployment(session, client=StubClient(deployment))
     assert list(session.values()) == [deployment.json()]
 
 
 def test_get_new_steps(domain):
-    deployment = Deployment(id=1, no_steps_yet=True)
+    deployment = RemoteDeployment(id=1, no_steps_yet=True)
     session = {domain.get_session_key_from_deployment_id(deployment.id): deployment.json()}
     deployment.no_steps_yet = False
     new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
@@ -36,7 +36,7 @@ def test_get_new_steps(domain):
 
 
 def test_finished_deployment_is_removed_from_session(domain):
-    deployment = Deployment(id=1, finished=timezone.now())
+    deployment = RemoteDeployment(id=1, finished=timezone.now())
     deployment_key = domain.get_session_key_from_deployment_id(deployment.id)
     session = {deployment_key: deployment.json()}
     new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
