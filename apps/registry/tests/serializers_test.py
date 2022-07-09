@@ -1,19 +1,19 @@
-from datetime import timedelta
-
-from django.contrib.sessions.serializers import JSONSerializer
-from django.utils import timezone
+from datetime import datetime
 
 from ..fastdeploy import RemoteDeployment, Step
-from ..models import Domain
+from ..serializers import RegistryJSONEncoder
 
 
-def test_session_serializer():
-    step = Step(name="step name", started=timezone.now() - timedelta(minutes=2))
+def test_json_serializer():
+    """
+    Use datetime without microseconds instead of timezone.now() because
+    Django strips microseconds from timestamps it serializes to json
+    because of ECMA-262 and the assertion would fail.
+    """
+    started = datetime(2022, 7, 22, 9)
+    step = Step(name="step name", started=started)
     deployment = RemoteDeployment(id=1, service_id=1, origin="registry", user="user1", steps=[step])
-    deployment_key = Domain.get_session_key_from_deployment_id(deployment.id)
-    session = {deployment_key: deployment.json(), "foo": "bar"}
-    serializer = JSONSerializer()
-    serialized = serializer.dumps(session)
-    deserialized = serializer.loads(serialized)
-    from_session = RemoteDeployment.parse_raw(deserialized.get(deployment_key))
-    assert from_session == deployment
+    serializer = RegistryJSONEncoder()
+    encoded = serializer.encode(deployment)
+    decoded = RemoteDeployment.parse_raw(encoded)
+    assert decoded == deployment
