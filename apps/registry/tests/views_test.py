@@ -1,9 +1,10 @@
-# from unittest.mock import patch
+from datetime import datetime
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
 
-# from ..fastdeploy import SpecialSteps
+from ..fastdeploy import SpecialSteps
 
 
 @pytest.mark.django_db
@@ -15,7 +16,7 @@ from django.urls import reverse
         ("get", reverse("domain_deployments", kwargs={"domain_id": 1})),
         ("post", reverse("domain_deployments", kwargs={"domain_id": 1})),
         ("get", reverse("deploy_progress", kwargs={"domain_id": 1, "deployment_id": 1})),
-        ("get", reverse("deploy_state", kwargs={"domain_id": 1, "deployment_id": 1})),
+        ("get", reverse("deploy_state", kwargs={"deployment_id": 1})),
     ],
 )
 def test_get_login_required_not_authenticated(client, method, url):
@@ -78,15 +79,16 @@ def test_get_login_required_deploy_progress_authenticated(client, domain):
     assert "staging.django-cast.com" in r.content.decode("utf8")
 
 
-# def test_get_login_required_deploy_state_authenticated(client, domain):
-#     user = domain.owner
-#     client.login(username=user.username, password=user._password)
-#     url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 1})
-#     steps = [SpecialSteps.START.value]
-#     with patch("apps.registry.models.Domain.get_new_steps", return_value=(steps, False)):
-#         r = client.get(url)
-#     assert r.status_code == 200
-#     assert "aside" in r.content.decode("utf8")
+def test_get_login_required_deploy_state_authenticated(client, deployment):
+    domain = deployment.domain
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("deploy_state", kwargs={"deployment_id": deployment.pk})
+    steps = [SpecialSteps.START.value]
+    with patch("apps.registry.models.Deployment.get_new_steps", return_value=steps):
+        r = client.get(url)
+    assert r.status_code == 200
+    assert "aside" in r.content.decode("utf8")
 
 
 @pytest.fixture
@@ -110,7 +112,6 @@ def test_get_domain_deployments_not_authorized(client, domain, other_user):
     "url_name",
     [
         "deploy_progress",
-        "deploy_state",
     ],
 )
 def test_get_user_not_authorized_legacy(client, domain, other_user, url_name):
@@ -120,18 +121,18 @@ def test_get_user_not_authorized_legacy(client, domain, other_user, url_name):
     assert r.status_code == 403
 
 
-# def test_get_deployment_state_finished_has_stop_polling_status(client, domain):
-#     user = domain.owner
-#     client.login(username=user.username, password=user._password)
-#     url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 1})
-#     steps = [SpecialSteps.END.value]
-#     with patch("apps.registry.models.Domain.get_new_steps", return_value=(steps, True)):
-#         r = client.get(url)
-#     assert r.status_code == 286
-
-
-# def test_get_deployment_state_no_deployment_in_session(client, domain):
-#     client.login(username=domain.owner.username, password=domain.owner._password)
-#     url = reverse("deploy_state", kwargs={"domain_id": domain.pk, "deployment_id": 23})
-#     r = client.get(url)
-#     assert r.status_code == 404
+@pytest.mark.django_db
+def test_get_deployment_state_finished_has_stop_polling_status(client, user, deployment, remote_deployment):
+    """
+    Use user fixture because user._password gets lost by fetching user from db.
+    """
+    remote_deployment.finished = datetime(2022, 7, 7, 10)
+    deployment.data = remote_deployment
+    deployment.save()
+    deployment.refresh_from_db()
+    client.login(username=user.username, password=user._password)
+    url = reverse("deploy_state", kwargs={"deployment_id": deployment.pk})
+    steps = [SpecialSteps.END.value]
+    with patch("apps.registry.models.Deployment.get_new_steps", return_value=steps):
+        r = client.get(url)
+    assert r.status_code == 286

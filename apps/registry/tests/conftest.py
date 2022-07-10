@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from ..fastdeploy import RemoteDeployment, Step
-from ..models import Domain
+from ..models import Deployment, Domain
 
 
 @pytest.fixture
@@ -18,6 +18,12 @@ def user(django_user_model):
 def domain(user):
     model = Domain.objects.create(fqdn="foo.staging.django-cast.com", owner=user)
     return model
+
+
+@pytest.fixture
+def deployment(domain):
+    deployment = Deployment.objects.create(domain=domain)
+    return deployment
 
 
 @pytest.fixture

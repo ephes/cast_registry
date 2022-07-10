@@ -8,9 +8,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django_htmx.http import HTMX_STOP_POLLING
 
-from .fastdeploy import Steps
+from .fastdeploy import Steps, TestClient
 from .forms import DeploymentForm, DomainForm
 from .models import Deployment, Domain
+
+test_client = TestClient()
 
 
 @require_GET
@@ -59,17 +61,14 @@ def build_steps_html(steps: Steps) -> str:
 
 @login_required
 @require_GET
-def deploy_state(request: HttpRequest, domain_id: int, deployment_id: int) -> HttpResponse:
-    domain = get_object_or_404(Domain, pk=domain_id)
+def deploy_state(request: HttpRequest, deployment_id: int) -> HttpResponse:
+    deployment = get_object_or_404(Deployment, pk=deployment_id)
+    domain = deployment.domain
     if domain.owner != request.user:
         return HttpResponse(status=403)
-    try:
-        new_steps, finished = domain.get_new_steps(request.session, deployment_id)
-    except KeyError:
-        # deployment with deployment_id not in session
-        return HttpResponse(status=404)
+    new_steps = deployment.get_new_steps(client=test_client)
     html = build_steps_html(new_steps)
-    if finished:
+    if deployment.has_finished:
         return HttpResponse(status=HTMX_STOP_POLLING, content=html)
     else:
         return HttpResponse(status=200, content=html)
@@ -132,6 +131,7 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
         form = DeploymentForm(request.POST, initial={"domain": domain})
         if form.is_valid():
             deployment = form.save(commit=False)
+            deployment.start(client=test_client)
             deployment.save()
             messages.add_message(request, messages.INFO, "Deployment created successfully")
             success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
@@ -140,11 +140,14 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
         form = DeploymentForm(initial={"target": Deployment.Target.DEPLOY.value, "domain": domain})
 
     deployments = Deployment.objects.filter(domain=domain).order_by("pk")
+    in_progress = [d for d in deployments if d.in_progress]
+    print("in progress: ", in_progress)
     page_num = request.GET.get("page", "1")
     page = Paginator(object_list=deployments, per_page=2).get_page(page_num)
     context = {
         "form": form,
         "domain": domain,
+        "deployments_in_progress": in_progress,
         "page": page,
     }
     return render_partial_or_full(request, "domain_deployments.html", context)
