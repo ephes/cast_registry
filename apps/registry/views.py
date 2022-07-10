@@ -9,8 +9,8 @@ from django.views.decorators.http import require_GET
 from django_htmx.http import HTMX_STOP_POLLING
 
 from .fastdeploy import Steps
-from .forms import DomainForm
-from .models import Domain
+from .forms import DeploymentForm, DomainForm
+from .models import Deployment, Domain
 
 
 @require_GET
@@ -93,6 +93,15 @@ def register_domain(request: HttpRequest):
         return
 
 
+def render_partial_or_full(request: HttpRequest, template_name: str, context: dict):
+    if request.htmx:
+        base_template = "_partial.html"
+    else:
+        base_template = "_base.html"
+    context["base_template"] = base_template
+    return render(request, template_name, context)
+
+
 @login_required
 def domains(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
@@ -108,21 +117,34 @@ def domains(request: HttpRequest) -> HttpResponse:
         form = DomainForm(initial={"fqdn": "your-podcast.staging.django-cast.com"})
 
     registered_domains = Domain.objects.filter(owner=request.user)
-    # Standard Django pagination
     page_num = request.GET.get("page", "1")
     page = Paginator(object_list=registered_domains, per_page=2).get_page(page_num)
+    context = {"form": form, "page": page}
+    return render_partial_or_full(request, "domains.html", context)
 
-    # return render(request, "domains.html", context=context)
-    if request.htmx:
-        base_template = "_partial.html"
+
+@login_required
+def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
+    domain = get_object_or_404(Domain, pk=domain_id)
+    if domain.owner != request.user:
+        return HttpResponse(status=403)
+    if request.method == "POST":
+        form = DeploymentForm(request.POST, initial={"domain": domain})
+        if form.is_valid():
+            deployment = form.save(commit=False)
+            deployment.save()
+            messages.add_message(request, messages.INFO, "Deployment created successfully")
+            success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+            return HttpResponseRedirect(success_url)
     else:
-        base_template = "_base.html"
-    return render(
-        request,
-        "domains.html",
-        {
-            "base_template": base_template,
-            "form": form,
-            "page": page,
-        },
-    )
+        form = DeploymentForm(initial={"target": Deployment.Target.DEPLOY.value, "domain": domain})
+
+    deployments = Deployment.objects.filter(domain=domain)
+    page_num = request.GET.get("page", "1")
+    page = Paginator(object_list=deployments, per_page=2).get_page(page_num)
+    context = {
+        "form": form,
+        "domain": domain,
+        "page": page,
+    }
+    return render_partial_or_full(request, "domain_deployments.html", context)

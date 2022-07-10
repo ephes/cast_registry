@@ -12,6 +12,10 @@ class DomainForm(forms.ModelForm):
 
 
 class DeploymentForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["domain"].disabled = True
+
     class Meta:
         fields = ["domain", "target"]
         model = Deployment

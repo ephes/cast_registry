@@ -1,0 +1,30 @@
+{% extends base_template %}
+{% block main %}
+  <section>
+    <form hx-post="{% url 'domain_deployments' domain_id=domain.pk %}"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      hx-target="#main"
+      action="{% url 'domain_deployments' domain_id=domain.pk %}" method="post">
+      <header>
+        <h2>Deploy your site</h2>
+      </header>
+      {% csrf_token %}
+      {{ form }}
+      <button type="submit">Submit</button>
+    </form>
+  </section>
+  <p></p>
+  <section>
+    <table>
+      <thead>
+        <tr><th>Target</th></tr>
+      </thead>
+      <tbody>
+        {% for deployment in page.object_list %}
+          <tr><td>{{ deployment.target }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% include "pagination.html" %}
+{% endblock %}
