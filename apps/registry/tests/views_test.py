@@ -12,6 +12,8 @@ from django.urls import reverse
     [
         ("get", reverse("domains")),
         ("post", reverse("domains")),
+        ("get", reverse("domain_deployments", kwargs={"domain_id": 1})),
+        ("post", reverse("domain_deployments", kwargs={"domain_id": 1})),
         ("get", reverse("deploy_progress", kwargs={"domain_id": 1, "deployment_id": 1})),
         ("get", reverse("deploy_state", kwargs={"domain_id": 1, "deployment_id": 1})),
     ],
@@ -31,12 +33,32 @@ def test_get_domains_authenticated(client, user):
     assert "form hx-post" in r.content.decode("utf8")
 
 
+@pytest.mark.django_db
+def test_get_domain_deployments_authenticated(client, domain):
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+    r = client.get(url)
+    assert r.status_code == 200
+    assert "form hx-post" in r.content.decode("utf8")
+
+
+@pytest.mark.django_db
+def test_post_domain_deployments_authorized(client, domain):
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+    r = client.post(url, data={"target": "DP"})
+    assert r.status_code == 302
+    assert r.url == url
+
+
 def test_post_domains_authenticated(client, user):
     client.login(username=user.username, password=user._password)
     url = reverse("domains")
     r = client.post(url, data={"fqdn": "my.domain.staging.django-cast.com"})
     assert r.status_code == 302
-    assert r.url == reverse("domains")
+    assert r.url == url
 
 
 def test_post_domains_authenticated_invalid_form(client, user):
@@ -76,6 +98,14 @@ def other_user(django_user_model):
 
 
 @pytest.mark.django_db
+def test_get_domain_deployments_not_authorized(client, domain, other_user):
+    client.login(username=other_user.username, password=other_user._password)
+    url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+    r = client.get(url)
+    assert r.status_code == 403
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "url_name",
     [
@@ -83,7 +113,7 @@ def other_user(django_user_model):
         "deploy_state",
     ],
 )
-def test_get_user_not_authorized(client, domain, other_user, url_name):
+def test_get_user_not_authorized_legacy(client, domain, other_user, url_name):
     client.login(username=other_user.username, password=other_user._password)
     url = reverse(url_name, kwargs={"domain_id": domain.pk, "deployment_id": 1})
     r = client.get(url)
