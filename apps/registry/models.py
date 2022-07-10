@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from .fastdeploy import AbstractClient, Client, RemoteDeployment, Steps
 from .serializers import RegistryJSONEncoder
@@ -25,6 +26,16 @@ class Deployment(models.Model):
     Deployments have a domain for which they are deployed. They store
     a serialized version of the RemoteDeployment model fetched from fastdeploy.
     """
+
+    class Target(models.TextChoices):
+        DEPLOY = "DP", _("Deploy")
+        REMOVE = "RM", _("Remove")
+
+    target = models.CharField(
+        max_length=2,
+        choices=Target.choices,
+        default=Target.DEPLOY,
+    )
 
     data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
     domain = models.ForeignKey(Domain, on_delete=models.CASCADE)

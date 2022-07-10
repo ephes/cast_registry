@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Domain
+from .models import Deployment, Domain
 
 
 class DomainForm(forms.ModelForm):
@@ -9,3 +9,9 @@ class DomainForm(forms.ModelForm):
     class Meta:
         fields = ["fqdn"]
         model = Domain
+
+
+class DeploymentForm(forms.ModelForm):
+    class Meta:
+        fields = ["domain", "target"]
+        model = Deployment
