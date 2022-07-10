@@ -40,6 +40,12 @@ def test_deployment_start(domain, remote_deployment):
 
 
 @pytest.mark.django_db
+def test_deployment_get_empty_new_steps_on_finished(finished_deployment):
+    new_steps = finished_deployment.get_new_steps()
+    assert new_steps == []
+
+
+@pytest.mark.django_db
 def test_deployment_get_new_steps(domain):
     remote_deployment = RemoteDeployment(id=1, no_steps_yet=True)
     deployment = Deployment(domain=domain, data=remote_deployment)
