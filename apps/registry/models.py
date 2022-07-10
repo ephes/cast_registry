@@ -42,6 +42,8 @@ class Deployment(models.Model):
 
     @property
     def remote(self):
+        if self.data is None:
+            return None
         return RemoteDeployment.parse_obj(self.data)
 
     def start(self, client: AbstractClient = Client()):
@@ -63,3 +65,15 @@ class Deployment(models.Model):
         self.data = deployment  # deployment is the new remote
         self.save()
         return new_steps
+
+    @property
+    def has_finished(self):
+        if self.remote is None:
+            return False
+        return self.remote.has_finished
+
+    @property
+    def in_progress(self):
+        if self.remote is None:
+            return False
+        return not self.has_finished

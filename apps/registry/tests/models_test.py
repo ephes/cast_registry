@@ -55,3 +55,14 @@ def test_deployment_get_new_steps(domain):
     deployment.refresh_from_db()
     new_steps = deployment.get_new_steps(client=client)
     assert new_steps == []
+
+
+@pytest.mark.django_db
+def test_deployment_in_progress(domain, remote_deployment):
+    deployment = Deployment(domain=domain)
+    assert not deployment.in_progress
+
+    deployment.data = remote_deployment
+    deployment.save()
+    deployment.refresh_from_db()
+    assert deployment.in_progress
