@@ -17,5 +17,5 @@ def test_deployment_form_invalid():
 
 @pytest.mark.django_db
 def test_deployment_form_valid(domain):
-    form = DeploymentForm(dict(domain=domain, target="DP"))
+    form = DeploymentForm(dict(target="DP"), initial={"domain": domain})
     assert form.is_valid()
