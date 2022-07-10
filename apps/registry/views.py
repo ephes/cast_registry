@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -25,9 +26,13 @@ def register(request: HttpRequest) -> HttpResponse:
             domain = form.save(commit=False)
             domain.owner = request.user
             domain.save()
+            print("---------------------------")
+            print("domain saved..")
             messages.add_message(request, messages.INFO, "Domain registered successfully")
-            deployment_id = domain.start_deployment(request.session)
-            success_url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": deployment_id})
+            # deployment_id = domain.start_deployment(request.session)
+            # success_url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": deployment_id})
+            success_url = reverse("domains")
+            print("redirect to: ", success_url)
             return HttpResponseRedirect(success_url)
     else:
         form = DomainForm(initial={"fqdn": "your-podcast.staging.django-cast.com"})
@@ -73,3 +78,51 @@ def deploy_state(request: HttpRequest, domain_id: int, deployment_id: int) -> Ht
 @csrf_exempt
 def fade_out(request: HttpRequest) -> HttpResponse:
     return HttpResponse(status=200, content="")
+
+
+def register_domain(request: HttpRequest):
+    form = DomainForm(request.POST)
+    if form.is_valid():
+        domain = form.save(commit=False)
+        domain.owner = request.user
+        domain.save()
+        messages.add_message(request, messages.INFO, "Domain registered successfully")
+        success_url = reverse("domains")
+        return HttpResponseRedirect(success_url)
+    else:
+        return
+
+
+@login_required
+def domains(request: HttpRequest) -> HttpResponse:
+    if request.method == "POST":
+        form = DomainForm(request.POST)
+        if form.is_valid():
+            domain = form.save(commit=False)
+            domain.owner = request.user
+            domain.save()
+            messages.add_message(request, messages.INFO, "Domain registered successfully")
+            success_url = reverse("domains")
+            return HttpResponseRedirect(success_url)
+    else:
+        form = DomainForm(initial={"fqdn": "your-podcast.staging.django-cast.com"})
+
+    registered_domains = Domain.objects.filter(owner=request.user)
+    # Standard Django pagination
+    page_num = request.GET.get("page", "1")
+    page = Paginator(object_list=registered_domains, per_page=2).get_page(page_num)
+
+    # return render(request, "domains.html", context=context)
+    if request.htmx:
+        base_template = "_partial.html"
+    else:
+        base_template = "_base.html"
+    return render(
+        request,
+        "domains.html",
+        {
+            "base_template": base_template,
+            "form": form,
+            "page": page,
+        },
+    )
