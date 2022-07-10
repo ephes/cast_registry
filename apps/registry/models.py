@@ -1,9 +1,9 @@
-from typing import MutableMapping
-
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
-from .deployment import AbstractClient, Client, Deployment, Finished, Steps
+from .fastdeploy import AbstractClient, Client, RemoteDeployment, Steps
+from .serializers import RegistryJSONEncoder
 
 
 class Domain(models.Model):
@@ -20,28 +20,60 @@ class Domain(models.Model):
     class Meta:
         ordering = ("fqdn",)
 
-    def start_deployment(self) -> int:
-        """Start a deployment for this domain"""
-        client = Client()
-        return client.start_deployment(self)
 
-    @staticmethod
-    def get_new_steps(
-        session: MutableMapping, deployment_id: int, client: AbstractClient = Client()
-    ) -> tuple[Steps, Finished]:
+class Deployment(models.Model):
+    """
+    Deployments have a domain for which they are deployed. They store
+    a serialized version of the RemoteDeployment model fetched from fastdeploy.
+    """
+
+    class Target(models.TextChoices):
+        DEPLOY = "DP", _("Deploy")
+        REMOVE = "RM", _("Remove")
+
+    target = models.CharField(
+        max_length=2,
+        choices=Target.choices,
+        default=Target.DEPLOY,
+    )
+
+    data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
+    domain = models.ForeignKey(Domain, on_delete=models.CASCADE)
+
+    @property
+    def remote(self):
+        if self.data is None:
+            return None
+        return RemoteDeployment.parse_obj(self.data)
+
+    def start(self, client: AbstractClient = Client()):
+        self.data = client.start_deployment(self.domain)
+
+    def get_new_steps(self, client: AbstractClient = Client()) -> Steps:
         """
-        Fetch already seen deployment for this deployment_id from session
-        and use it to find the new steps in the deployment fetched from
-        http client. We have to double encode the deployment objects as a
-        workaround, because Django's standard session serializer cannot
-        encode datetime objects like deployment.finished. Therefore, pydantic
-        deployment.json() is used. Not pretty, but it works.
+        If the deployment has finished, it's possible to return early that
+        there are no new steps.
+
+        If it hasn't finished yet, fetch a new version of the deployment
+        via client and use it to calculate the list of unseen steps.
         """
-        deployment_key = f"deployment_{deployment_id}"
-        seen_json = seen_deployment = session.get(deployment_key)
-        if seen_json is not None:
-            seen_deployment = Deployment.parse_raw(seen_json)
-        deployment = client.fetch_deployment(deployment_id)
-        new_steps = deployment.get_new_steps(seen_deployment)
-        session[deployment_key] = deployment.json()
-        return new_steps, deployment.has_finished
+        if self.remote.has_finished:
+            return []
+
+        deployment = client.fetch_deployment(self.remote.id)
+        new_steps = deployment.get_new_steps(self.remote)
+        self.data = deployment  # deployment is the new remote
+        self.save()
+        return new_steps
+
+    @property
+    def has_finished(self):
+        if self.remote is None:
+            return False
+        return self.remote.has_finished
+
+    @property
+    def in_progress(self):
+        if self.remote is None:
+            return False
+        return not self.has_finished

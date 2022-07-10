@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from ..deployment import Deployment, SpecialSteps, Step
+from ..fastdeploy import RemoteDeployment, SpecialSteps, Step
 
 NEW = Step(id=2, name="new")
 NOT_NEW = Step(id=2, name="not new")
@@ -12,10 +12,18 @@ NOT_NEW = Step(id=2, name="not new")
 @pytest.mark.parametrize(
     "deployment, seen, expected",
     [
-        (Deployment(), None, [SpecialSteps.START.value]),  # no deployment seen before -> start step
-        (Deployment(finished=timezone.now()), Deployment(), [SpecialSteps.END.value]),  # only finished step
-        (Deployment(steps=[NEW]), Deployment(), [NEW]),  # new step
-        (Deployment(steps=[NOT_NEW]), Deployment(steps=[NOT_NEW]), []),  # no new step -> []
+        (
+            RemoteDeployment(),
+            RemoteDeployment(no_steps_yet=True),
+            [SpecialSteps.START.value],
+        ),  # no deployment seen before
+        (
+            RemoteDeployment(finished=timezone.now()),
+            RemoteDeployment(),
+            [SpecialSteps.END.value],
+        ),  # only finished step
+        (RemoteDeployment(steps=[NEW]), RemoteDeployment(), [NEW]),  # new step
+        (RemoteDeployment(steps=[NOT_NEW]), RemoteDeployment(steps=[NOT_NEW]), []),  # no new step -> []
     ],
 )
 def test_get_new_step(deployment, seen, expected):

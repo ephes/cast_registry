@@ -3,9 +3,14 @@ import secrets
 import string
 from datetime import datetime
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .models import Domain
 
 import httpx
 from django.conf import settings
+from django.utils import timezone
 from pydantic import BaseModel
 
 
@@ -41,10 +46,9 @@ class SpecialSteps(Enum):
 
 
 Steps = list[Step]
-Finished = bool
 
 
-class Deployment(BaseModel):
+class RemoteDeployment(BaseModel):
     id: int | None = None
     steps: Steps = []
     service_id: int = 1
@@ -53,6 +57,7 @@ class Deployment(BaseModel):
     started: datetime | None = None
     finished: datetime | None = None
     context: dict = {}
+    no_steps_yet: bool = False  # used to signal that self was just started
 
     @property
     def has_finished(self):
@@ -60,16 +65,16 @@ class Deployment(BaseModel):
 
     @property
     def steps_for_client(self):
+        if self.no_steps_yet:
+            return []
         steps = [SpecialSteps.START.value]
         steps.extend(self.steps)
         if self.has_finished:
             steps.append(SpecialSteps.END.value)
         return steps
 
-    def get_new_steps(self, seen) -> Steps:
-        seen_steps = set()
-        if seen is not None:
-            seen_steps = {s.id for s in seen.steps_for_client}
+    def get_new_steps(self, seen: "RemoteDeployment") -> Steps:
+        seen_steps = {s.id for s in seen.steps_for_client}
         return [s for s in self.steps_for_client if s.id not in seen_steps]
 
 
@@ -79,11 +84,11 @@ class DeploymentContext(BaseModel):
 
 class AbstractClient(abc.ABC):
     @abc.abstractmethod
-    def start_deployment(self, domain) -> int:
+    def start_deployment(self, domain: "Domain") -> RemoteDeployment:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_deployment(self, deployment_id: int) -> Deployment:
+    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
         raise NotImplementedError
 
 
@@ -119,27 +124,40 @@ class ProductionClient(AbstractClient):
         }
         return DeploymentContext(env=env)
 
-    def start_deployment(self, domain) -> int:
+    def start_deployment(self, domain) -> RemoteDeployment:
         context = self.get_deployment_context(domain.fqdn)
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
             r = client.post("deployments/", json=context.dict())
         deployment_id = int(r.json()["id"])
-        return deployment_id
+        return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment_id: int) -> Deployment:
+    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
         with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
             r = client.get(f"deployments/{deployment_id}")
-        deployment = Deployment(**r.json())
+        deployment = RemoteDeployment(**r.json())
         deployment.steps.sort(reverse=True)
         return deployment
 
 
 class TestClient(AbstractClient):
-    def start_deployment(self, domain) -> int:
-        return 1
+    def __init__(
+        self,
+        deployments=[
+            RemoteDeployment(id=1, no_steps_yet=True),
+            RemoteDeployment(service_id=1, origin="test", user="foo", steps=[]),
+            RemoteDeployment(service_id=1, finished=timezone.now()),
+        ],
+    ):
+        self.start = deployments[0]
+        self.deployments = list(reversed(deployments))
 
-    def fetch_deployment(self, deployment_id: int) -> Deployment:
-        return Deployment(service_id=1, origin="test", user="foo", steps=[])
+    def start_deployment(self, domain) -> RemoteDeployment:
+        return self.start
+
+    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
+        if len(self.deployments) == 1:
+            return self.deployments[0]
+        return self.deployments.pop()
 
 
 Client: type[AbstractClient]

@@ -23,3 +23,7 @@ databases
 
 # static files
 staticfiles
+
+# vim
+*.swp
+*.swo

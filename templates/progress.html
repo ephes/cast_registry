@@ -1,0 +1,15 @@
+<section>
+  <h1>Deployment Progress for {{ deployment.pk }}</h1>
+  <p>
+    The deployment is currently in progress for {{ domain }}.
+  </p>
+  <p
+    hx-get="{% url 'deploy_state' deployment_id=deployment.pk %}"
+    hx-trigger="every 1s"
+    hx-target="#progress-end-{{ deployment.pk }}"
+    hx-swap="beforebegin"
+  >
+    Progress Steps..
+  </p>
+  <div id="progress-end-{{ deployment.pk }}"></div>
+</section>

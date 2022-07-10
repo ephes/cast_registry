@@ -6,7 +6,7 @@
       The deployment is currently in progress for {{ domain }}.
     </p>
     <p
-      hx-get="{% url 'deploy_state' domain.pk deployment_id %}"
+      hx-get="{% url 'deploy_state' deployment_id %}"
       hx-trigger="every 1s"
       hx-target="#progress-end"
       hx-swap="beforebegin"
