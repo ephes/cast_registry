@@ -116,7 +116,7 @@ def domains(request: HttpRequest) -> HttpResponse:
     else:
         form = DomainForm(initial={"fqdn": "your-podcast.staging.django-cast.com"})
 
-    registered_domains = Domain.objects.filter(owner=request.user)
+    registered_domains = Domain.objects.filter(owner=request.user).order_by("pk")
     page_num = request.GET.get("page", "1")
     page = Paginator(object_list=registered_domains, per_page=2).get_page(page_num)
     context = {"form": form, "page": page}
@@ -139,7 +139,7 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
     else:
         form = DeploymentForm(initial={"target": Deployment.Target.DEPLOY.value, "domain": domain})
 
-    deployments = Deployment.objects.filter(domain=domain)
+    deployments = Deployment.objects.filter(domain=domain).order_by("pk")
     page_num = request.GET.get("page", "1")
     page = Paginator(object_list=deployments, per_page=2).get_page(page_num)
     context = {
