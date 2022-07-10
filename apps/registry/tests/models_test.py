@@ -1,6 +1,9 @@
-from django.utils import timezone
+import pytest
 
 from ..fastdeploy import RemoteDeployment, SpecialSteps
+from ..models import Deployment
+
+# Tests for Deployment model
 
 
 class StubClient:
@@ -14,31 +17,41 @@ class StubClient:
         return self.deployment
 
 
-def test_domain_start_deployment_puts_deployment_in_session(domain):
-    session = {}
-    deployment = RemoteDeployment(id=1, no_steps_yet=True)
-    _ = domain.start_deployment(session, client=StubClient(deployment))
-    assert list(session.values()) == [deployment.json()]
+@pytest.mark.django_db
+def test_deployment_remote_serialization(domain, remote_deployment):
+    deployment = Deployment(domain=domain)
+    deployment.save()
+    deployment.refresh_from_db()
+    assert deployment.data is None
+    deployment.data = remote_deployment
+    deployment.save()
+    deployment.refresh_from_db()
+    assert deployment.remote == remote_deployment
 
 
-def test_get_new_steps(domain):
-    deployment = RemoteDeployment(id=1, no_steps_yet=True)
-    session = {domain.get_session_key_from_deployment_id(deployment.id): deployment.json()}
-    deployment.no_steps_yet = False
-    new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
+@pytest.mark.django_db
+def test_deployment_start(domain, remote_deployment):
+    deployment = Deployment(domain=domain)
+    client = StubClient(remote_deployment)
+    deployment.start(client=client)
+    deployment.save()
+    deployment.refresh_from_db()
+    assert deployment.remote == remote_deployment
+
+
+@pytest.mark.django_db
+def test_deployment_get_new_steps(domain):
+    remote_deployment = RemoteDeployment(id=1, no_steps_yet=True)
+    deployment = Deployment(domain=domain, data=remote_deployment)
+    deployment.save()
+    deployment.refresh_from_db()
+    remote_deployment.no_steps_yet = False
+    client = StubClient(remote_deployment)
+    new_steps = deployment.get_new_steps(client=client)
     assert new_steps == [SpecialSteps.START.value]
-    assert not finished
-    assert list(session.values()) == [deployment.json()]
+    assert not deployment.remote.has_finished
 
     # start step is already seen
-    new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
+    deployment.refresh_from_db()
+    new_steps = deployment.get_new_steps(client=client)
     assert new_steps == []
-
-
-def test_finished_deployment_is_removed_from_session(domain):
-    deployment = RemoteDeployment(id=1, finished=timezone.now())
-    deployment_key = domain.get_session_key_from_deployment_id(deployment.id)
-    session = {deployment_key: deployment.json()}
-    new_steps, finished = domain.get_new_steps(session, deployment.id, client=StubClient(deployment))
-    assert finished
-    assert list(session.values()) == []

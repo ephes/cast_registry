@@ -1,9 +1,8 @@
-from typing import MutableMapping
-
 from django.conf import settings
 from django.db import models
 
-from .fastdeploy import AbstractClient, Client, Finished, RemoteDeployment, Steps
+from .fastdeploy import AbstractClient, Client, RemoteDeployment, Steps
+from .serializers import RegistryJSONEncoder
 
 
 class Domain(models.Model):
@@ -20,35 +19,36 @@ class Domain(models.Model):
     class Meta:
         ordering = ("fqdn",)
 
-    @staticmethod
-    def get_session_key_from_deployment_id(deployment_id: int) -> str:
-        return f"deployment_{deployment_id}"
 
-    def start_deployment(self, session: MutableMapping, client: AbstractClient = Client()) -> int:
-        """Start a deployment for this domain"""
-        deployment = client.start_deployment(self)
-        assert deployment.id is not None
-        key = self.get_session_key_from_deployment_id(deployment.id)
-        session[key] = deployment.json()
-        return deployment.id
+class Deployment(models.Model):
+    """
+    Deployments have a domain for which they are deployed. They store
+    a serialized version of the RemoteDeployment model fetched from fastdeploy.
+    """
 
-    def get_new_steps(
-        self, session: MutableMapping, deployment_id: int, client: AbstractClient = Client()
-    ) -> tuple[Steps, Finished]:
+    data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
+    domain = models.ForeignKey(Domain, on_delete=models.CASCADE)
+
+    @property
+    def remote(self):
+        return RemoteDeployment.parse_obj(self.data)
+
+    def start(self, client: AbstractClient = Client()):
+        self.data = client.start_deployment(self.domain)
+
+    def get_new_steps(self, client: AbstractClient = Client()) -> Steps:
         """
-        Fetch already seen deployment for this deployment_id from session
-        and use it to find the new steps in the deployment fetched from
-        http client. We have to double encode the deployment objects as a
-        workaround, because Django's standard session serializer cannot
-        encode datetime objects like deployment.finished. Therefore, pydantic
-        deployment.json() is used. Not pretty, but it works.
+        If the deployment has finished, it's possible to return early that
+        there are no new steps.
+
+        If it hasn't finished yet, fetch a new version of the deployment
+        via client and use it to calculate the list of unseen steps.
         """
-        deployment_key = self.get_session_key_from_deployment_id(deployment_id)
-        seen_deployment = RemoteDeployment.parse_raw(session[deployment_key])
-        deployment = client.fetch_deployment(deployment_id)
-        new_steps = deployment.get_new_steps(seen_deployment)
-        if deployment.has_finished:
-            del session[deployment_key]
-        else:
-            session[deployment_key] = deployment.json()
-        return new_steps, deployment.has_finished
+        if self.remote.has_finished:
+            return []
+
+        deployment = client.fetch_deployment(self.remote.id)
+        new_steps = deployment.get_new_steps(self.remote)
+        self.data = deployment  # deployment is the new remote
+        self.save()
+        return new_steps

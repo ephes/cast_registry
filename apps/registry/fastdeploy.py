@@ -45,7 +45,6 @@ class SpecialSteps(Enum):
 
 
 Steps = list[Step]
-Finished = bool
 
 
 class RemoteDeployment(BaseModel):
