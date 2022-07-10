@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 import httpx
 from django.conf import settings
+from django.utils import timezone
 from pydantic import BaseModel
 
 
@@ -139,11 +140,24 @@ class ProductionClient(AbstractClient):
 
 
 class TestClient(AbstractClient):
+    def __init__(
+        self,
+        deployments=[
+            RemoteDeployment(id=1, no_steps_yet=True),
+            RemoteDeployment(service_id=1, origin="test", user="foo", steps=[]),
+            RemoteDeployment(service_id=1, finished=timezone.now()),
+        ],
+    ):
+        self.start = deployments[0]
+        self.deployments = list(reversed(deployments))
+
     def start_deployment(self, domain) -> RemoteDeployment:
-        return RemoteDeployment(id=1, no_steps_yet=True)
+        return self.start
 
     def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
-        return RemoteDeployment(service_id=1, origin="test", user="foo", steps=[])
+        if len(self.deployments) == 1:
+            return self.deployments[0]
+        return self.deployments.pop()
 
 
 Client: type[AbstractClient]
