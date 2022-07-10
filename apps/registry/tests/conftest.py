@@ -36,3 +36,12 @@ def remote_deployment():
     started = datetime(2022, 7, 22, 9)
     step = Step(name="step name", started=started)
     return RemoteDeployment(id=1, service_id=1, origin="registry", user="user1", steps=[step])
+
+
+@pytest.fixture
+def finished_deployment(deployment, remote_deployment):
+    remote_deployment.finished = datetime(2022, 7, 7, 10)
+    deployment.data = remote_deployment
+    deployment.save()
+    deployment.refresh_from_db()
+    return deployment

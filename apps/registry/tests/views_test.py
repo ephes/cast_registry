@@ -1,4 +1,3 @@
-from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -122,16 +121,12 @@ def test_get_user_not_authorized_legacy(client, domain, other_user, url_name):
 
 
 @pytest.mark.django_db
-def test_get_deployment_state_finished_has_stop_polling_status(client, user, deployment, remote_deployment):
+def test_get_deployment_state_finished_has_stop_polling_status(client, user, finished_deployment, remote_deployment):
     """
     Use user fixture because user._password gets lost by fetching user from db.
     """
-    remote_deployment.finished = datetime(2022, 7, 7, 10)
-    deployment.data = remote_deployment
-    deployment.save()
-    deployment.refresh_from_db()
     client.login(username=user.username, password=user._password)
-    url = reverse("deploy_state", kwargs={"deployment_id": deployment.pk})
+    url = reverse("deploy_state", kwargs={"deployment_id": finished_deployment.pk})
     steps = [SpecialSteps.END.value]
     with patch("apps.registry.models.Deployment.get_new_steps", return_value=steps):
         r = client.get(url)
