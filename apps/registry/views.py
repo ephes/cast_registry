@@ -92,7 +92,7 @@ def register_domain(request: HttpRequest):
         return
 
 
-def render_partial_or_full(request: HttpRequest, template_name: str, context: dict):
+def render_partial_or_full(request, template_name: str, context: dict):
     if request.htmx:
         base_template = "_partial.html"
     else:
@@ -115,6 +115,7 @@ def domains(request: HttpRequest) -> HttpResponse:
     else:
         form = DomainForm(initial={"fqdn": "your-podcast.staging.django-cast.com"})
 
+    assert not request.user.is_anonymous  # type guard for mypy
     registered_domains = Domain.objects.filter(owner=request.user).order_by("pk")
     page_num = request.GET.get("page", "1")
     page = Paginator(object_list=registered_domains, per_page=2).get_page(page_num)
