@@ -3,6 +3,10 @@ import secrets
 import string
 from datetime import datetime
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .models import Domain
 
 import httpx
 from django.conf import settings
@@ -80,7 +84,7 @@ class DeploymentContext(BaseModel):
 
 class AbstractClient(abc.ABC):
     @abc.abstractmethod
-    def start_deployment(self, domain) -> RemoteDeployment:
+    def start_deployment(self, domain: "Domain") -> RemoteDeployment:
         raise NotImplementedError
 
     @abc.abstractmethod
