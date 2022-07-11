@@ -8,11 +8,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django_htmx.http import HTMX_STOP_POLLING
 
-from .fastdeploy import Steps, TestClient
+# from .fastdeploy import TestClient
+from .fastdeploy import Steps
 from .forms import DeploymentForm, DomainForm
 from .models import Deployment, Domain
 
-test_client = TestClient()
+# use this to test the frontend locally
+# test_client = TestClient()
 
 
 @require_GET
@@ -66,7 +68,8 @@ def deploy_state(request: HttpRequest, deployment_id: int) -> HttpResponse:
     domain = deployment.domain
     if domain.owner != request.user:
         return HttpResponse(status=403)
-    new_steps = deployment.get_new_steps(client=test_client)
+    # new_steps = deployment.get_new_steps(client=test_client)
+    new_steps = deployment.get_new_steps()
     html = build_steps_html(new_steps)
     if deployment.has_finished:
         return HttpResponse(status=HTMX_STOP_POLLING, content=html)
@@ -132,7 +135,8 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
         form = DeploymentForm(request.POST, initial={"domain": domain})
         if form.is_valid():
             deployment = form.save(commit=False)
-            deployment.start(client=test_client)
+            # deployment.start(client=test_client)
+            deployment.start()
             deployment.save()
             messages.add_message(request, messages.INFO, "Deployment created successfully")
             success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
