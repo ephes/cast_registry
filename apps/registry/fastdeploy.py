@@ -123,21 +123,23 @@ class ProductionClient(AbstractClient):
         }
         return DeploymentContext(env=env)
 
-    def start_deployment(self, deployment) -> RemoteDeployment:
+    def start_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
         domain = deployment.domain
         context = self.get_deployment_context(domain.fqdn)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
-        with httpx.Client(base_url=self.base_url, headers=headers) as client:
+        with client(base_url=self.base_url, headers=headers) as client:
             r = client.post("deployments/", json=context.dict())
         deployment_id = int(r.json()["id"])
         return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment) -> RemoteDeployment:
+    def fetch_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
         deployment_id = deployment.remote.id
         assert isinstance(deployment_id, int)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
-        with httpx.Client(base_url=self.base_url, headers=headers) as client:
+        with client(base_url=self.base_url, headers=headers) as client:
             r = client.get(f"deployments/{deployment_id}")
+        if r.status_code != 200:
+            return deployment.remote
         remote_deployment = RemoteDeployment(**r.json())
         remote_deployment.steps.sort(reverse=True)
         return remote_deployment
