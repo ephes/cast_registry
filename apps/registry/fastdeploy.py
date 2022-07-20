@@ -6,7 +6,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .models import Domain
+    from .models import Deployment
 
 import httpx
 from django.conf import settings
@@ -84,11 +84,11 @@ class DeploymentContext(BaseModel):
 
 class AbstractClient(abc.ABC):
     @abc.abstractmethod
-    def start_deployment(self, domain: "Domain") -> RemoteDeployment:
+    def start_deployment(self, deployment: "Deployment") -> RemoteDeployment:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
+    def fetch_deployment(self, deployment: "Deployment") -> RemoteDeployment:
         raise NotImplementedError
 
 
@@ -97,12 +97,11 @@ class ProductionClient(AbstractClient):
         self,
         *,
         base_url: str = settings.DEPLOY_BASE_URL,
-        headers: dict | None = None,
+        headers: dict = {},
     ):
         self.base_url = base_url
         self.headers = headers
-        if self.headers is None:
-            self.headers = {"authorization": f"Bearer {settings.DEPLOY_SERVICE_TOKEN}"}
+        # self.headers = {"authorization": f"Bearer {settings.DEPLOY_CAST_SERVICE_TOKEN}"}
 
     @staticmethod
     def get_deployment_context(fqdn: str) -> DeploymentContext:
@@ -124,19 +123,26 @@ class ProductionClient(AbstractClient):
         }
         return DeploymentContext(env=env)
 
-    def start_deployment(self, domain) -> RemoteDeployment:
+    def start_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
+        domain = deployment.domain
         context = self.get_deployment_context(domain.fqdn)
-        with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
+        headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
+        with client(base_url=self.base_url, headers=headers) as client:
             r = client.post("deployments/", json=context.dict())
         deployment_id = int(r.json()["id"])
         return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
-        with httpx.Client(base_url=self.base_url, headers=self.headers) as client:
+    def fetch_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
+        deployment_id = deployment.remote.id
+        assert isinstance(deployment_id, int)
+        headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
+        with client(base_url=self.base_url, headers=headers) as client:
             r = client.get(f"deployments/{deployment_id}")
-        deployment = RemoteDeployment(**r.json())
-        deployment.steps.sort(reverse=True)
-        return deployment
+        if r.status_code != 200:
+            return deployment.remote
+        remote_deployment = RemoteDeployment(**r.json())
+        remote_deployment.steps.sort(reverse=True)
+        return remote_deployment
 
 
 class TestClient(AbstractClient):
@@ -151,10 +157,10 @@ class TestClient(AbstractClient):
         self.start = deployments[0]
         self.deployments = list(reversed(deployments))
 
-    def start_deployment(self, domain) -> RemoteDeployment:
+    def start_deployment(self, deployment) -> RemoteDeployment:
         return self.start
 
-    def fetch_deployment(self, deployment_id: int) -> RemoteDeployment:
+    def fetch_deployment(self, deployment) -> RemoteDeployment:
         if len(self.deployments) == 1:
             return self.deployments[0]
         return self.deployments.pop()

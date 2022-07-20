@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 
 from ..fastdeploy import SpecialSteps
+from ..models import Domain
 
 
 @pytest.mark.django_db
@@ -56,7 +57,7 @@ def test_post_domain_deployments_authorized(client, domain):
 def test_post_domains_authenticated(client, user):
     client.login(username=user.username, password=user._password)
     url = reverse("domains")
-    r = client.post(url, data={"fqdn": "my.domain.staging.django-cast.com"})
+    r = client.post(url, data={"fqdn": "my.domain.staging.django-cast.com", "backend": Domain.Backend.CAST})
     assert r.status_code == 302
     assert r.url == url
 

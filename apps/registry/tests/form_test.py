@@ -5,7 +5,7 @@ from ..forms import DeploymentForm, DomainForm
 
 @pytest.mark.django_db
 def test_domain_form():
-    form = DomainForm(dict(fqdn="podcast.staging.django-cast.com"))
+    form = DomainForm(dict(fqdn="podcast.staging.django-cast.com", backend="CA"))
     assert form.is_valid()
 
 

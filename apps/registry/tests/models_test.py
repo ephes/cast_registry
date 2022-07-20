@@ -1,7 +1,21 @@
 import pytest
+from django.conf import settings
 
 from ..fastdeploy import RemoteDeployment, SpecialSteps
-from ..models import Deployment
+from ..models import Deployment, Domain
+
+# Tests for Domain model
+
+
+def test_domain_get_service_token():
+    domain = Domain(backend=Domain.Backend.CAST)
+    service_tokens = domain.service_tokens
+    assert "deploy" in service_tokens
+    assert "remove" in service_tokens
+
+    domain = Domain(backend="foo")
+    assert domain.service_tokens == {}
+
 
 # Tests for Deployment model
 
@@ -72,3 +86,13 @@ def test_deployment_in_progress(domain, remote_deployment):
     deployment.save()
     deployment.refresh_from_db()
     assert deployment.in_progress
+
+
+def test_deployment_service_token():
+    domain = Domain()
+    deployment = Deployment(domain=domain)
+    deployment.target = deployment.Target.DEPLOY
+    assert deployment.service_token == settings.DEPLOY_CAST_SERVICE_TOKEN
+
+    deployment.target = deployment.Target.REMOVE
+    assert deployment.service_token == settings.REMOVE_CAST_SERVICE_TOKEN
