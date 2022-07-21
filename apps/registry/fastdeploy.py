@@ -1,6 +1,4 @@
 import abc
-import secrets
-import string
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -101,31 +99,10 @@ class ProductionClient(AbstractClient):
     ):
         self.base_url = base_url
         self.headers = headers
-        # self.headers = {"authorization": f"Bearer {settings.DEPLOY_CAST_SERVICE_TOKEN}"}
-
-    @staticmethod
-    def get_deployment_context(fqdn: str) -> DeploymentContext:
-        alphabet = string.ascii_letters + string.digits
-        database_password = "".join(secrets.choice(alphabet) for _ in range(20))
-        secret_key = "".join(secrets.choice(alphabet) for _ in range(32))
-        underscored_fqdn = fqdn.replace(".", "_")
-        site_id = f"cast_{underscored_fqdn}"
-        env = {
-            "fqdn": fqdn,
-            "site_id": site_id,
-            "user_name": "cast_1",
-            "database_name": site_id,
-            "database_user": site_id,
-            "database_password": database_password,
-            "secret_key": secret_key,
-            "port": 10001,
-            "settings_file_name": site_id,
-        }
-        return DeploymentContext(env=env)
 
     def start_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
         domain = deployment.domain
-        context = self.get_deployment_context(domain.fqdn)
+        context = DeploymentContext(env=domain.context)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
         with client(base_url=self.base_url, headers=headers) as client:
             r = client.post("deployments/", json=context.dict())

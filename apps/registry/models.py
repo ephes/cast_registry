@@ -1,9 +1,17 @@
+import secrets
+import string
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from .fastdeploy import AbstractClient, Client, RemoteDeployment, Steps
 from .serializers import RegistryJSONEncoder
+
+
+def create_secret(length: int = 32):
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for i in range(length))
 
 
 class Domain(models.Model):
@@ -37,7 +45,55 @@ class Domain(models.Model):
                 "deploy": settings.DEPLOY_CAST_SERVICE_TOKEN,
                 "remove": settings.REMOVE_CAST_SERVICE_TOKEN,
             }
+        elif self.backend == self.Backend.WORDPRESS:
+            return {
+                "deploy": settings.DEPLOY_WORDPRESS_SERVICE_TOKEN,
+                "remove": settings.REMOVE_WORDPRESS_SERVICE_TOKEN,
+            }
         return {}
+
+    @staticmethod
+    def get_cast_context(base_context={}):
+        return {
+            "secret_key": create_secret(),
+            "settings_file_name": base_context["site_id"],
+        }
+
+    @staticmethod
+    def get_wordpress_context():
+        return {
+            "auth_key": create_secret(),
+            "secure_auth_key": create_secret(),
+            "logged_in_key": create_secret(),
+            "nonce_key": create_secret(),
+            "auth_salt": create_secret(),
+            "secure_auth_salt": create_secret(),
+            "logged_in_salt": create_secret(),
+            "nonce_salt": create_secret(),
+        }
+
+    @property
+    def context(self):
+        prefix = "cast" if self.backend == self.Backend.CAST else "wp"
+        fqdn = self.fqdn
+        underscored_fqdn = fqdn.replace(".", "_")
+        site_id = f"{prefix}_{underscored_fqdn}"
+        user_name = f"{prefix}_{self.pk}"
+        base = {
+            "fqdn": fqdn,
+            "site_id": site_id,
+            "user_name": user_name,
+            "database_name": site_id,
+            "database_user": site_id,
+            "database_password": create_secret(),
+            "port": str(10000 + self.pk),
+        }
+        additional_context = {}
+        if self.backend == self.Backend.CAST:
+            additional_context = self.get_cast_context(base_context=base)
+        elif self.backend == self.Backend.WORDPRESS:
+            additional_context = self.get_wordpress_context()
+        return base | additional_context
 
 
 class Deployment(models.Model):
