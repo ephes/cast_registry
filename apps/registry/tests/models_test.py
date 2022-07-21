@@ -127,3 +127,30 @@ def test_deployment_context_cast():
         "settings_file_name": site_id,
     }
     assert actual == expected
+
+
+def test_deployment_context_wordpress():
+    fqdn = "bar.staging.django-cast.com"
+    domain = Domain(pk=1, backend=Domain.Backend.WORDPRESS, fqdn=fqdn)
+    underscored_fqdn = fqdn.replace(".", "_")
+    site_id = f"wp_{underscored_fqdn}"
+    user_name = f"wp_{domain.pk}"
+    actual = domain.context
+    expected = {
+        "fqdn": fqdn,
+        "site_id": site_id,
+        "user_name": user_name,
+        "database_name": site_id,
+        "database_user": site_id,
+        "database_password": actual["database_password"],
+        "port": str(10000 + domain.pk),
+        "auth_key": actual["auth_key"],
+        "secure_auth_key": actual["secure_auth_key"],
+        "logged_in_key": actual["logged_in_key"],
+        "nonce_key": actual["nonce_key"],
+        "auth_salt": actual["auth_salt"],
+        "secure_auth_salt": actual["secure_auth_salt"],
+        "logged_in_salt": actual["logged_in_salt"],
+        "nonce_salt": actual["nonce_salt"],
+    }
+    assert actual == expected

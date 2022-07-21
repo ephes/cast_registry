@@ -52,14 +52,25 @@ class Domain(models.Model):
             }
         return {}
 
-    def get_cast_context(self, base_context):
+    @staticmethod
+    def get_cast_context(base_context={}):
         return {
             "secret_key": create_secret(),
             "settings_file_name": base_context["site_id"],
         }
 
-    def get_wordpress_context(self, base_context):
-        return {}
+    @staticmethod
+    def get_wordpress_context():
+        return {
+            "auth_key": create_secret(),
+            "secure_auth_key": create_secret(),
+            "logged_in_key": create_secret(),
+            "nonce_key": create_secret(),
+            "auth_salt": create_secret(),
+            "secure_auth_salt": create_secret(),
+            "logged_in_salt": create_secret(),
+            "nonce_salt": create_secret(),
+        }
 
     @property
     def context(self):
@@ -81,7 +92,7 @@ class Domain(models.Model):
         if self.backend == self.Backend.CAST:
             additional_context = self.get_cast_context(base_context=base)
         elif self.backend == self.Backend.WORDPRESS:
-            additional_context = self.get_wordpress_context(base_context=base)
+            additional_context = self.get_wordpress_context()
         return base | additional_context
 
 
