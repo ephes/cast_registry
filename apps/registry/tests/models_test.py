@@ -88,11 +88,42 @@ def test_deployment_in_progress(domain, remote_deployment):
     assert deployment.in_progress
 
 
-def test_deployment_service_token():
-    domain = Domain()
+def test_deployment_service_token_cast():
+    domain = Domain(backend=Domain.Backend.CAST)
     deployment = Deployment(domain=domain)
     deployment.target = deployment.Target.DEPLOY
     assert deployment.service_token == settings.DEPLOY_CAST_SERVICE_TOKEN
 
     deployment.target = deployment.Target.REMOVE
     assert deployment.service_token == settings.REMOVE_CAST_SERVICE_TOKEN
+
+
+def test_deployment_service_token_wordpress():
+    domain = Domain(backend=Domain.Backend.WORDPRESS)
+    deployment = Deployment(domain=domain)
+    deployment.target = deployment.Target.DEPLOY
+    assert deployment.service_token == settings.DEPLOY_WORDPRESS_SERVICE_TOKEN
+
+    deployment.target = deployment.Target.REMOVE
+    assert deployment.service_token == settings.REMOVE_WORDPRESS_SERVICE_TOKEN
+
+
+def test_deployment_context_cast():
+    fqdn = "foo.staging.django-cast.com"
+    domain = Domain(pk=1, backend=Domain.Backend.CAST, fqdn=fqdn)
+    underscored_fqdn = fqdn.replace(".", "_")
+    site_id = f"cast_{underscored_fqdn}"
+    user_name = f"cast_{domain.pk}"
+    actual = domain.context
+    expected = {
+        "fqdn": fqdn,
+        "site_id": site_id,
+        "user_name": user_name,
+        "database_name": site_id,
+        "database_user": site_id,
+        "database_password": actual["database_password"],
+        "secret_key": actual["secret_key"],
+        "port": str(10000 + domain.pk),
+        "settings_file_name": site_id,
+    }
+    assert actual == expected

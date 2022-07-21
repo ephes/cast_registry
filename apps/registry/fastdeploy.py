@@ -125,7 +125,8 @@ class ProductionClient(AbstractClient):
 
     def start_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
         domain = deployment.domain
-        context = self.get_deployment_context(domain.fqdn)
+        # context = self.get_deployment_context(domain.fqdn)
+        context = domain.context
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
         with client(base_url=self.base_url, headers=headers) as client:
             r = client.post("deployments/", json=context.dict())
