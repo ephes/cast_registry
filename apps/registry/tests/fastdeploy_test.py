@@ -47,11 +47,14 @@ class Response:
         self.status_code = status_code
 
     def json(self):
-        return {"foo": "bar"}
+        return {"foo": "bar", "id": 1}
 
 
 class OkHttpxClient(httpx.Client):
     def get(self, path):
+        return Response(200)
+
+    def post(self, path, json={}):
         return Response(200)
 
 
@@ -71,6 +74,11 @@ class Deployment:
         self.service_token = "asdf"
 
 
+class Domain:
+    def __init__(self):
+        self.context = {}
+
+
 def test_production_client_fetch_deployment_broken():
     """Response status is not ok"""
     client = ProductionClient()
@@ -85,3 +93,25 @@ def test_production_client_fetch_deployment_ok():
     deployment = Deployment(1)
     fetched_deployment = client.fetch_deployment(deployment, client=OkHttpxClient)
     assert isinstance(fetched_deployment, RemoteDeployment)
+
+
+def test_production_client_start_deployment():
+    """Start deployment test, mainly for coverage"""
+    client = ProductionClient()
+    deployment = Deployment(1)
+    deployment.domain = Domain()
+    started_deployment = client.start_deployment(deployment, client=OkHttpxClient)
+    assert isinstance(started_deployment, RemoteDeployment)
+
+
+def test_getting_production_client(settings):
+    from apps.registry.fastdeploy import ProductionClient, TestClient
+
+    settings.DEPLOY_CLIENT = "test"
+    from apps.registry.fastdeploy import Client
+
+    assert isinstance(Client, type(TestClient))
+    settings.DEPLOY_CLIENT = "asdf"
+    from apps.registry.fastdeploy import Client
+
+    assert isinstance(Client, type(ProductionClient))

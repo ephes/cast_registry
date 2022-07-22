@@ -50,6 +50,9 @@ exclude = '''
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
+filterwarnings = [
+    "ignore::django.utils.deprecation.RemovedInDjango41Warning",
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
