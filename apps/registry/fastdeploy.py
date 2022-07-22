@@ -137,14 +137,14 @@ class TestClient(AbstractClient):
     def start_deployment(self, deployment) -> RemoteDeployment:
         return self.start
 
-    def fetch_deployment(self, deployment) -> RemoteDeployment:
+    def fetch_deployment(self, deployment) -> RemoteDeployment:  # pragma: no cover
         if len(self.deployments) == 1:
             return self.deployments[0]
         return self.deployments.pop()
 
 
 Client: type[AbstractClient]
-if settings.DEPLOY_CLIENT == "test":
+if settings.DEPLOY_CLIENT == "test":  # pragma: no cover
     Client = TestClient
-else:
+else:  # pragma: no cover
     Client = ProductionClient

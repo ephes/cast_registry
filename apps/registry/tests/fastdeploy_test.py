@@ -102,3 +102,16 @@ def test_production_client_start_deployment():
     deployment.domain = Domain()
     started_deployment = client.start_deployment(deployment, client=OkHttpxClient)
     assert isinstance(started_deployment, RemoteDeployment)
+
+
+def test_getting_production_client(settings):
+    from apps.registry.fastdeploy import ProductionClient, TestClient
+
+    settings.DEPLOY_CLIENT = "test"
+    from apps.registry.fastdeploy import Client
+
+    assert isinstance(Client, type(TestClient))
+    settings.DEPLOY_CLIENT = "asdf"
+    from apps.registry.fastdeploy import Client
+
+    assert isinstance(Client, type(ProductionClient))
