@@ -4,7 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .models import Deployment
+    from .models import Deployment  # pragma: no cover
 
 import httpx
 from django.conf import settings
@@ -83,11 +83,11 @@ class DeploymentContext(BaseModel):
 class AbstractClient(abc.ABC):
     @abc.abstractmethod
     def start_deployment(self, deployment: "Deployment") -> RemoteDeployment:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @abc.abstractmethod
     def fetch_deployment(self, deployment: "Deployment") -> RemoteDeployment:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class ProductionClient(AbstractClient):
