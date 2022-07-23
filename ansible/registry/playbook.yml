@@ -32,7 +32,8 @@
     - name: Git checkout repository
       git:
         repo: "https://github.com/ephes/cast_registry"
-        version: "main"
+        version: "9-add-email-backend-for-registration-mails"
+        # version: "main"
         dest: "{{ site_path }}"
       become: true
       become_user: "{{ username }}"
