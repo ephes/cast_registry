@@ -11,3 +11,12 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 from .base import *  # noqa
 
 DEPLOY_CLIENT = "test"
+
+# EMAIL
+# ------------------------------------------------------------------------------
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-host
+EMAIL_HOST = "localhost"
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-port
+EMAIL_PORT = 1025
