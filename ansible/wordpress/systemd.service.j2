@@ -1,0 +1,14 @@
+[Unit]
+Description={{ fqdn }} via wordpresshosting
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+WorkingDirectory={{ home_dir }}
+User={{ user_name }}
+Environment="PHP_CLI_SERVER_WORKERS=3"
+ExecStart=/usr/bin/php -S 127.0.0.1:{{ port }}
+
+[Install]
+WantedBy=multi-user.target

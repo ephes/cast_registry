@@ -1,0 +1,39 @@
+- hosts: localhost
+  tasks:
+    - name: "Include secret vars"
+      include_vars: secrets.yml
+
+    - name: Make sure wordpress service is stopped
+      systemd:
+        state: stopped
+        name: "{{ site_id }}"
+
+    - name: Remove the mysql database
+      community.mysql.mysql_db:
+        name: "{{ database_name }}"
+        login_password: "{{ mariadb_root_password }}"
+        state: absent
+
+    - name: Remove mysql user
+      community.mysql.mysql_user:
+        state: absent
+        name: "{{ user_name }}"
+        login_password: "{{ mariadb_root_password }}"
+        password: "{{ database_password }}"
+        priv: "{{ database_name }}.*:ALL,GRANT"
+
+    - name: Remove unit file for systemd service
+      file:
+        path: "/etc/systemd/system/{{ site_id }}.service"
+        state: absent
+
+    - name: Remove config file for traefik loadbalancer
+      file:
+        path: "/etc/traefik/dynamic/{{ site_id }}.traefik.yml"
+        state: absent
+
+    - name: Remove unix user
+      user:
+        name: "{{ user_name }}"
+        state: absent
+        remove: yes

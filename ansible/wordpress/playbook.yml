@@ -1,0 +1,94 @@
+- hosts: localhost
+  vars:
+#    - user_name: wp_1
+#    - site_id: "wp_podlove_wp_staging_django-cast_com"
+#    - database_name: "{{ site_id }}"
+#    - database_user: "{{ site_id }}"
+#    - fqdn: "podlove.wp.staging.django-cast.com"
+#    - port: 12222
+    - home_dir: "/home/{{ user_name }}"
+    - upload_max_filesize: "1G"
+    - post_max_size: "1G"
+    - memory_limit: "256M"
+    - default_path: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  tasks:
+    - name: "Include secret vars"
+      include_vars: secrets.yml
+
+    - name: Add sury.org signing key - do not download if present
+      apt_key:
+        id: 15058500A0235D97F5D10063B188E2B695BD4743
+        url: https://packages.sury.org/php/apt.gpg
+        state: present
+
+    - name: Add sury.org repository for php 8.1
+      apt_repository:
+        repo: deb https://packages.sury.org/php/ bullseye main
+        state: present
+
+    - name: Install required php packages
+      apt:
+        name: ["php8.1", "php8.1-mysql", "php8.1-curl"]
+
+    - name: Create php.ini
+      template:
+        src: php.ini.j2
+        dest: "/etc/php/8.1/cli/php.ini"
+        mode: '0644'
+
+    - name: Add the unix user with a bash shell
+      user:
+        name: "{{ user_name }}"
+        shell: /bin/bash
+
+    - name: Create a new mysql database
+      community.mysql.mysql_db:
+        name: "{{ database_name }}"
+        login_password: "{{ mariadb_root_password }}"
+        state: present
+
+    - name: Create mysql user with access to previously created database
+      community.mysql.mysql_user:
+        state: present
+        name: "{{ user_name }}"
+        login_password: "{{ mariadb_root_password }}"
+        password: "{{ database_password }}"
+        priv: "{{ database_name }}.*:ALL,GRANT"
+
+    - name: Download wordpress source
+      unarchive:
+        src: https://wordpress.org/latest.tar.gz
+        dest: "{{ home_dir }}"
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+        owner: "{{ user_name }}"
+
+    - name: Create wp-config file
+      template:
+        src: wp-config-sample.php.j2
+        dest: "{{ home_dir }}/wp-config.php"
+        mode: '0400'
+        owner: "{{ user_name }}"
+
+    - name: Create traefik service config
+      template:
+        src: traefik.template.j2
+        dest: "/etc/traefik/dynamic/{{ site_id }}.traefik.yml"
+        mode: '0644'
+      environment:
+        PATH: "{{ default_path }}"
+
+    - name: Create systemd service config
+      template:
+        src: systemd.service.j2
+        dest: "/etc/systemd/system/{{ site_id }}.service"
+        mode: '0644'
+      environment:
+        PATH: "{{ default_path }}"
+
+    - name: Make sure wordpress service is restarted
+      systemd:
+        state: restarted
+        name: "{{ site_id }}"
+      environment:
+        PATH: "{{ default_path }}"
