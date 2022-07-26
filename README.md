@@ -65,6 +65,7 @@ There are two preconfigured services for [fastdeploy](https://github.com/ephes/f
 living in the `ansible` directory:
 - registry
 - cast
+- wordpress
 
 The registry service is used to deploy other things like cast hosting or wordpress services.
 It's deployed via:
