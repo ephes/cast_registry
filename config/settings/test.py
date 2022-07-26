@@ -20,3 +20,6 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 EMAIL_HOST = "localhost"
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = 1025
+
+# Make tests faster by using a noop hasher
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
