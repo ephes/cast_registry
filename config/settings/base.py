@@ -191,3 +191,13 @@ DEPLOY_CLIENT = "production"
 
 # Location of root django.contrib.admin URL, use {% url 'admin:index' %}
 ADMIN_URL = "admin/"
+
+
+# django-allauth
+# ------------------------------------------------------------------------------
+ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)
+ACCOUNT_AUTHENTICATION_METHOD = "username"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_ADAPTER = "apps.registry.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "apps.registry.adapters.SocialAccountAdapter"
