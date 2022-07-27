@@ -40,4 +40,3 @@ repos:
     hooks:
       - id: djhtml
         args: [-t, "2"]
-        files: .*/templates/.*\.html$
