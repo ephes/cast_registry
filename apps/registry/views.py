@@ -23,28 +23,6 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def register(request: HttpRequest) -> HttpResponse:
-    if request.method == "POST":
-        form = DomainForm(request.POST)
-        if form.is_valid():
-            domain = form.save(commit=False)
-            domain.owner = request.user
-            domain.save()
-            print("---------------------------")
-            print("domain saved..")
-            messages.add_message(request, messages.INFO, "Domain registered successfully")
-            # deployment_id = domain.start_deployment(request.session)
-            # success_url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": deployment_id})
-            success_url = reverse("domains")
-            print("redirect to: ", success_url)
-            return HttpResponseRedirect(success_url)
-    else:
-        form = DomainForm(initial={"fqdn": "your-podcast.staging.django-cast.com"})
-    context = {"form": form}
-    return render(request, "register.html", context=context)
-
-
-@login_required
 @require_GET
 def deploy_progress(request: HttpRequest, domain_id: int, deployment_id: int) -> HttpResponse:
     domain = get_object_or_404(Domain, pk=domain_id)
@@ -80,19 +58,6 @@ def deploy_state(request: HttpRequest, deployment_id: int) -> HttpResponse:
 @csrf_exempt
 def fade_out(request: HttpRequest) -> HttpResponse:
     return HttpResponse(status=200, content="")
-
-
-def register_domain(request: HttpRequest):
-    form = DomainForm(request.POST)
-    if form.is_valid():
-        domain = form.save(commit=False)
-        domain.owner = request.user
-        domain.save()
-        messages.add_message(request, messages.INFO, "Domain registered successfully")
-        success_url = reverse("domains")
-        return HttpResponseRedirect(success_url)
-    else:
-        return
 
 
 def render_partial_or_full(request, template_name: str, context: dict):
