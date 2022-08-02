@@ -22,16 +22,6 @@ def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html")
 
 
-@login_required
-@require_GET
-def deploy_progress(request: HttpRequest, domain_id: int, deployment_id: int) -> HttpResponse:
-    domain = get_object_or_404(Domain, pk=domain_id)
-    if domain.owner != request.user:
-        return HttpResponse(status=403)
-    context = {"domain": domain, "deployment_id": deployment_id}
-    return render(request, "deploy_progress.html", context=context)
-
-
 def build_steps_html(steps: Steps) -> str:
     lines = []
     for step in steps:
@@ -115,7 +105,6 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
 
     deployments = Deployment.objects.filter(domain=domain).order_by("pk")
     in_progress = [d for d in deployments if d.in_progress]
-    print("in progress: ", in_progress)
     page_num = request.GET.get("page", "1")
     page = Paginator(object_list=deployments, per_page=2).get_page(page_num)
     context = {

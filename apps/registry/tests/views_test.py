@@ -15,7 +15,6 @@ from ..models import Domain
         ("post", reverse("domains")),
         ("get", reverse("domain_deployments", kwargs={"domain_id": 1})),
         ("post", reverse("domain_deployments", kwargs={"domain_id": 1})),
-        ("get", reverse("deploy_progress", kwargs={"domain_id": 1, "deployment_id": 1})),
         ("get", reverse("deploy_state", kwargs={"deployment_id": 1})),
     ],
 )
@@ -70,15 +69,6 @@ def test_post_domains_authenticated_invalid_form(client, user):
     assert "This field is required." in r.content.decode("utf8")
 
 
-def test_get_login_required_deploy_progress_authenticated(client, domain):
-    user = domain.owner
-    client.login(username=user.username, password=user._password)
-    url = reverse("deploy_progress", kwargs={"domain_id": domain.pk, "deployment_id": 1})
-    r = client.get(url)
-    assert r.status_code == 200
-    assert "staging.django-cast.com" in r.content.decode("utf8")
-
-
 def test_get_login_required_deploy_state_authenticated(client, deployment):
     domain = deployment.domain
     user = domain.owner
@@ -103,20 +93,6 @@ def other_user(django_user_model):
 def test_get_domain_deployments_not_authorized(client, domain, other_user):
     client.login(username=other_user.username, password=other_user._password)
     url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
-    r = client.get(url)
-    assert r.status_code == 403
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize(
-    "url_name",
-    [
-        "deploy_progress",
-    ],
-)
-def test_get_user_not_authorized_legacy(client, domain, other_user, url_name):
-    client.login(username=other_user.username, password=other_user._password)
-    url = reverse(url_name, kwargs={"domain_id": domain.pk, "deployment_id": 1})
     r = client.get(url)
     assert r.status_code == 403
 
