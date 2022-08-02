@@ -7,6 +7,11 @@ from ..fastdeploy import SpecialSteps
 from ..models import Domain
 
 
+def test_get_home(client):
+    r = client.get(reverse("home"))
+    assert r.status_code == 200
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "method, url",

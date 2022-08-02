@@ -7,7 +7,7 @@ from . import views  # noqa
 app_name = "registry"
 
 urlpatterns: list[Any] = [
-    path("", views.home),
+    path("", views.home, name="home"),
     path("domains/", views.domains, name="domains"),
     path("domain-deployments/<int:domain_id>/", views.domain_deployments, name="domain_deployments"),
     path("fade_out/", views.fade_out, name="fade_out"),
