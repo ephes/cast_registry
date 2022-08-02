@@ -16,3 +16,6 @@ AUTH_PASSWORD_VALIDATORS = []
 DEBUG = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# activate test client for UI tests
+DEPLOY_CLIENT = "test"
