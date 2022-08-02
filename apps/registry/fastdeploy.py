@@ -100,7 +100,7 @@ class ProductionClient(AbstractClient):
         self.base_url = base_url
         self.headers = headers
 
-    def start_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
+    def start_deployment(self, deployment, client=httpx.Client) -> RemoteDeployment:
         domain = deployment.domain
         context = DeploymentContext(env=domain.context)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
@@ -109,7 +109,7 @@ class ProductionClient(AbstractClient):
         deployment_id = int(r.json()["id"])
         return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment, client: type[httpx.Client] = httpx.Client) -> RemoteDeployment:
+    def fetch_deployment(self, deployment, client=httpx.Client) -> RemoteDeployment:
         deployment_id = deployment.remote.id
         assert isinstance(deployment_id, int)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}

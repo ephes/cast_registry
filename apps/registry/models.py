@@ -160,3 +160,4 @@ class Deployment(models.Model):
             return service_tokens["deploy"]
         elif self.target == self.Target.REMOVE:
             return service_tokens["remove"]
+        return None
