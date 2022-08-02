@@ -148,11 +148,11 @@ class Request:
 
 def test_render_full_when_htmx_is_false():
     r = render_partial_or_full(Request(False), "domains.html", {})
-    text = r.content.decode("utf8")
-    assert "doctype html" in text
+    html = r.content.decode("utf8")
+    assert "doctype html" in html
 
 
 def test_render_partial_when_htmx_is_true():
     r = render_partial_or_full(Request(True), "domains.html", {})
-    text = r.content.decode("utf8")
-    assert "doctype html" not in text
+    html = r.content.decode("utf8")
+    assert "doctype html" not in html
