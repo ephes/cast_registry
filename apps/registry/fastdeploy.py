@@ -122,24 +122,27 @@ class ProductionClient(AbstractClient):
         return remote_deployment
 
 
+def create_test_deployments():
+    deployments = [RemoteDeployment(id=1, no_steps_yet=True)]
+    step_names = ["first step", "second step"]
+    for step_id, step_name in enumerate(step_names, 1):
+        steps = [Step(id=step_id, name=step_name)]
+        deployments.append(RemoteDeployment(service_id=1, origin="test", user="foo", steps=steps))
+    deployments.append(RemoteDeployment(service_id=1, finished=timezone.now()))
+    deployments.reverse()
+    return deployments
+
+
 class TestClient(AbstractClient):
-    def __init__(
-        self,
-        deployments=[
-            RemoteDeployment(id=1, no_steps_yet=True),
-            RemoteDeployment(service_id=1, origin="test", user="foo", steps=[]),
-            RemoteDeployment(service_id=1, finished=timezone.now()),
-        ],
-    ):
-        self.start = deployments[0]
-        self.deployments = list(reversed(deployments))
+    def __init__(self):
+        self.deployments = []
 
     def start_deployment(self, deployment) -> RemoteDeployment:
-        return self.start
+        self.deployments = create_test_deployments()
+        deployment = self.deployments.pop()
+        return deployment
 
     def fetch_deployment(self, deployment) -> RemoteDeployment:  # pragma: no cover
-        if len(self.deployments) == 1:
-            return self.deployments[0]
         return self.deployments.pop()
 
 
