@@ -64,6 +64,16 @@ def test_post_domain_deployments_authorized(client, domain):
     assert r.url == url
 
 
+def test_post_domain_deployments_invalid_form(client, domain):
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+    r = client.post(url, data={"target": "ASDF"})
+    assert r.status_code == 200
+    html = r.content.decode("utf8")
+    assert "errorlist" in html
+
+
 def test_post_domains_authenticated(client, user):
     client.login(username=user.username, password=user._password)
     url = reverse("domains")
