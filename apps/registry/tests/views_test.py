@@ -108,6 +108,14 @@ def test_get_domain_deployments_not_authorized(client, domain, other_user):
 
 
 @pytest.mark.django_db
+def test_get_deploy_state_not_authorized(client, deployment, other_user):
+    client.login(username=other_user.username, password=other_user._password)
+    url = reverse("deploy_state", kwargs={"deployment_id": deployment.pk})
+    r = client.get(url)
+    assert r.status_code == 403
+
+
+@pytest.mark.django_db
 def test_get_deployment_state_finished_has_stop_polling_status(client, user, finished_deployment, remote_deployment):
     """
     Use user fixture because user._password gets lost by fetching user from db.
