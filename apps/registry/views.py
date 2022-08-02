@@ -70,7 +70,8 @@ def domains(request: HttpRequest) -> HttpResponse:
 
     assert not request.user.is_anonymous  # type guard for mypy
     registered_domains = Domain.objects.filter(owner=request.user).order_by("pk")
-    page_num = request.GET.get("page", "1")
+    get_params = dict(request.GET)
+    page_num = get_params.get("page", "1")
     page = Paginator(object_list=registered_domains, per_page=2).get_page(page_num)
     context = {"form": form, "page": page}
     return render_partial_or_full(request, "domains.html", context)
@@ -95,7 +96,8 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
 
     deployments = Deployment.objects.filter(domain=domain).order_by("pk")
     in_progress = [d for d in deployments if d.in_progress]
-    page_num = request.GET.get("page", "1")
+    get_params = dict(request.GET)
+    page_num = get_params.get("page", "1")
     page = Paginator(object_list=deployments, per_page=2).get_page(page_num)
     context = {
         "form": form,
