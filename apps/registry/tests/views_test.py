@@ -12,6 +12,11 @@ def test_get_home(client):
     assert r.status_code == 200
 
 
+def test_get_fade_out(client):
+    r = client.get(reverse("fade_out"))
+    assert r.status_code == 200
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "method, url",
