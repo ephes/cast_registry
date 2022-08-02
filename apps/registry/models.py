@@ -53,7 +53,7 @@ class Domain(models.Model):
         return {}
 
     @staticmethod
-    def get_cast_context(base_context={}):
+    def get_cast_context(base_context):
         return {
             "secret_key": create_secret(),
             "settings_file_name": base_context["site_id"],
@@ -90,7 +90,7 @@ class Domain(models.Model):
         }
         additional_context = {}
         if self.backend == self.Backend.CAST:
-            additional_context = self.get_cast_context(base_context=base)
+            additional_context = self.get_cast_context(base)
         elif self.backend == self.Backend.WORDPRESS:
             additional_context = self.get_wordpress_context()
         return base | additional_context
