@@ -11,7 +11,7 @@ from .serializers import RegistryJSONEncoder
 
 def create_secret(length: int = 32):
     alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for i in range(length))
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 class Domain(models.Model):
