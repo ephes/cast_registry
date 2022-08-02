@@ -97,6 +97,10 @@ def test_deployment_service_token_cast():
     deployment.target = deployment.Target.REMOVE
     assert deployment.service_token == settings.REMOVE_CAST_SERVICE_TOKEN
 
+    # if target is unknown, service_token is None
+    deployment.target = "foo"
+    assert deployment.service_token is None
+
 
 def test_deployment_service_token_wordpress():
     domain = Domain(backend=Domain.Backend.WORDPRESS)
@@ -106,6 +110,10 @@ def test_deployment_service_token_wordpress():
 
     deployment.target = deployment.Target.REMOVE
     assert deployment.service_token == settings.REMOVE_WORDPRESS_SERVICE_TOKEN
+
+    # if target is unknown, service_token is None
+    deployment.target = "foo"
+    assert deployment.service_token is None
 
 
 def test_deployment_context_cast():
