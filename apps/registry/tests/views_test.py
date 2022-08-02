@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from ..fastdeploy import SpecialSteps
 from ..models import Domain
+from ..views import render_partial_or_full
 
 
 def test_get_home(client):
@@ -126,3 +127,22 @@ def test_get_deployment_state_finished_has_stop_polling_status(client, user, fin
     with patch("apps.registry.models.Deployment.get_new_steps", return_value=steps):
         r = client.get(url)
     assert r.status_code == 286
+
+
+class Request:
+    META = {"CSRF_COOKIE": "asdf"}
+
+    def __init__(self, is_htmx):
+        self.htmx = is_htmx
+
+
+def test_render_full_when_htmx_is_false():
+    r = render_partial_or_full(Request(False), "domains.html", {})
+    text = r.content.decode("utf8")
+    assert "doctype html" in text
+
+
+def test_render_partial_when_htmx_is_true():
+    r = render_partial_or_full(Request(True), "domains.html", {})
+    text = r.content.decode("utf8")
+    assert "doctype html" not in text
