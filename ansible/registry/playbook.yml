@@ -86,14 +86,6 @@
       become: true
       become_user: "{{ username }}"
 
-    - name: Find path to poetry venv interpreter
-      shell: "find {{ home_path }}/.cache/pypoetry/virtualenvs -name python | grep bin"
-      register: find_python
-
-    - name: Set python bin path
-      set_fact:
-        python_bin_path={{ find_python.stdout }}
-
     - name: Upgrade pip
       shell: "{{ python_bin_path }} -m pip install --upgrade pip"
       args:
