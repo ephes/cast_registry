@@ -1,6 +1,5 @@
 black
 coverage
-django-debug-toolbar
 django-stubs
 djhtml
 Faker
