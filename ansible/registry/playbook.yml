@@ -87,21 +87,21 @@
       become_user: "{{ username }}"
 
     - name: Upgrade pip
-      shell: "{{ python_bin_path }} -m pip install --upgrade pip"
+      shell: "{{ python }} -m pip install --upgrade pip"
       args:
         chdir: "{{ site_path }}"
       become: true
       become_user: "{{ username }}"
 
     - name: Run django migrations
-      shell: "{{ python_bin_path }} manage.py migrate"
+      shell: "{{ python }} manage.py migrate"
       args:
         chdir: "{{ site_path }}"
       become: true
       become_user: "{{ username }}"
 
     - name: Run django collectstatic
-      shell: "{{ python_bin_path }} manage.py collectstatic --noinput"
+      shell: "{{ python }} manage.py collectstatic --noinput"
       args:
         chdir: "{{ site_path }}"
       become: true
