@@ -52,7 +52,7 @@ exclude = '''
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 filterwarnings = [
-    "ignore::django.utils.deprecation.RemovedInDjango41Warning",
+    "ignore::django.utils.deprecation.RemovedInDjango50Warning",
 ]
 
 [build-system]
