@@ -34,12 +34,12 @@
         - { src: "playbook.yml", dest: "{{ service_path }}/playbook.yml" }
         - { src: "playbook_remove.yml", dest: "{{ service_remove_path }}/playbook.yml" }
         - { src: "traefik.template.j2", dest: "{{ service_path }}/traefik.template.j2" }
+        - { src: "user_config.fish.template.j2", dest: "{{ service_path }}/user_config.fish.template.j2" }
         - { src: "inventory", dest: "{{ service_path }}" }
         - { src: "inventory", dest: "{{ service_remove_path }}" }
         - { src: "systemd.service.j2", dest: "{{ service_path }}/systemd.service.j2" }
         - { src: "env.template.j2", dest: "{{ service_path }}/env.template.j2" }
         - { src: "gunicorn.sh.j2", dest: "{{ service_path }}/gunicorn.sh.j2" }
-        - { src: "bash_profile.j2", dest: "{{ service_path }}/bash_profile.j2" }
         - { src: "vars.yml", dest: "{{ service_path }}/vars.yml" }
         - { src: "vars.yml", dest: "{{ service_remove_path }}/vars.yml" }
 

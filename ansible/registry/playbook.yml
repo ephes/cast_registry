@@ -6,10 +6,10 @@
     - name: "Include public vars"
       include_vars: vars.yml
 
-    - name: Add the unix user with a bash shell
+    - name: Add the unix user with a fish shell
       user:
         name: "{{ username }}"
-        shell: /bin/bash
+        shell: /usr/bin/fish
 
     - name: Create a new postgres database
       # install role first:
@@ -44,6 +44,19 @@
         mode: "0600"
         owner: "{{ username }}"
 
+    - name: Create directory for fish config
+      file:
+        path: "{{ home_path }}/.config/fish"
+        state: directory
+        owner: "{{ username }}"
+
+    - name: Create fish config
+      template:
+        src: user_config.fish.template.j2
+        dest: "{{ home_path }}/.config/fish/config.fish"
+        mode: "0644"
+        owner: "{{ username }}"
+
     - name: Create gunicorn start script
       template:
         src: gunicorn.sh.j2
@@ -51,22 +64,23 @@
         owner: "{{ username }}"
         mode: "0755"
 
-    - name: Create bash_profile
-      template:
-        src: bash_profile.j2
-        dest: "{{ home_path }}/.bash_profile"
-        owner: "{{ username }}"
-        mode: "0644"
-
-    - name: Install poetry
-      shell: curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3.10 -
-      args:
-        warn: no
+    - name: Create virtualenv for python
+      shell: "{{ global_python }} -m venv {{ site_path }}/venv"
       become: true
       become_user: "{{ username }}"
 
-    - name: Install poetry dependencies
-      shell: "{{ home_path }}/.poetry/bin/poetry install"
+    - name: Upgrade pip prod venv
+      shell: "{{ python }} -m pip install --upgrade pip"
+      become: true
+      become_user: "{{ username }}"
+
+    - name: Install pip-tools
+      shell: "{{ python }} -m pip install -U pip-tools"
+      become: true
+      become_user: "{{ username }}"
+
+    - name: Install app production requirements
+      shell: "{{ pip_sync }} requirements/production.txt"
       args:
         chdir: "{{ site_path }}"
       become: true
