@@ -1,0 +1,19 @@
+black
+coverage
+django-debug-toolbar
+django-stubs
+djhtml
+Faker
+jupyterlab
+mypy
+nb-black
+notebook
+pip-tools
+pydantic  # used for tests of plasticiq graph based model
+pyproject-flake8
+pytest
+pytest-django
+rich
+Sphinx
+sphinx-rtd-theme
+typer[all]

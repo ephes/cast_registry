@@ -1,0 +1,12 @@
+Django
+django-allauth
+django-anymail[mailgun]
+django-environ
+django-extensions
+django-htmx
+faker
+gunicorn
+httpx
+psycopg2
+pydantic
+whitenoise
