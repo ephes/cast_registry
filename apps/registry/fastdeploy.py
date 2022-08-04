@@ -133,7 +133,7 @@ def create_test_deployments():
     return deployments
 
 
-TEST_DEPLOYMENTS = {}
+TEST_DEPLOYMENTS: dict[int, list] = {}
 
 
 class TestClient(AbstractClient):
