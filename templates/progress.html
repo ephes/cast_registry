@@ -10,6 +10,9 @@
     hx-swap="beforebegin"
   >
     Progress Steps..
+    {% for step in deployment.processed_steps %}
+      <aside>{{ step.name }}</aside>
+    {% endfor %}
   </p>
   <div id="progress-end-{{ deployment.pk }}"></div>
 </section>

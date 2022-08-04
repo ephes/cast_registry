@@ -133,25 +133,25 @@ def create_test_deployments():
     return deployments
 
 
-TEST_DEPLOYMENTS = []
+TEST_DEPLOYMENTS = {}
 
 
 class TestClient(AbstractClient):
     """
-    Use the same TEST_DEPLOYMENTS list for all test clients.
-
-    FIXME: This breaks on running multiple deployments in parallel.
+    Use the same TEST_DEPLOYMENTS dict for all test clients.
     """
 
-    def start_deployment(self, deployment) -> RemoteDeployment:
+    def __init__(self):
         global TEST_DEPLOYMENTS
-        TEST_DEPLOYMENTS = create_test_deployments()
-        deployment = TEST_DEPLOYMENTS.pop()
+        self.global_deployments = TEST_DEPLOYMENTS
+
+    def start_deployment(self, deployment) -> RemoteDeployment:
+        self.global_deployments[deployment.pk] = create_test_deployments()
+        deployment = self.global_deployments[deployment.pk].pop()
         return deployment
 
     def fetch_deployment(self, deployment) -> RemoteDeployment:  # pragma: no cover
-        global TEST_DEPLOYMENTS
-        return TEST_DEPLOYMENTS.pop()
+        return self.global_deployments[deployment.pk].pop()
 
 
 Client: type[AbstractClient]

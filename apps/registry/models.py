@@ -113,6 +113,7 @@ class Deployment(models.Model):
     )
 
     data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
+    processed_steps = models.JSONField(encoder=RegistryJSONEncoder, default=[])
     domain = models.ForeignKey(Domain, on_delete=models.CASCADE)
 
     @property
@@ -123,6 +124,7 @@ class Deployment(models.Model):
 
     def start(self, client: AbstractClient = Client()):
         self.data = client.start_deployment(self)
+        self.save()
 
     def get_new_steps(self, client: AbstractClient = Client()) -> Steps:
         """
@@ -137,6 +139,7 @@ class Deployment(models.Model):
 
         deployment = client.fetch_deployment(self)
         new_steps = deployment.get_new_steps(self.remote)
+        self.processed_steps.extend(new_steps)
         self.data = deployment  # deployment is the new remote
         self.save()
         return new_steps

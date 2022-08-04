@@ -85,9 +85,8 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
     if request.method == "POST":
         form = DeploymentForm(request.POST, initial={"domain": domain})
         if form.is_valid():
-            deployment = form.save(commit=False)
+            deployment = form.save()
             deployment.start()
-            deployment.save()
             messages.add_message(request, messages.INFO, "Deployment created successfully")
             success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
             return HttpResponseRedirect(success_url)
