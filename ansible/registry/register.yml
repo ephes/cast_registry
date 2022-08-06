@@ -1,4 +1,5 @@
 - hosts: staging
+  gather_facts: no
   vars:
     - username: deploy
     - home_path: "/home/{{ username }}"
