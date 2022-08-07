@@ -1,5 +1,8 @@
 {% extends base_template %}
 {% block main %}
+  {% if messages %}
+    {% include "messages.html" %}
+  {% endif %}
   <section>
     <form hx-post="{% url 'domain_deployments' domain_id=domain.pk %}"
       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'

@@ -20,6 +20,10 @@
     -->
   <body hx-ext="debug, event-header">
     <header>
+      {% if messages %}
+        {% include "messages.html" %}
+      {% endif %}
+
       <nav>
         <h1>
           <a href="/">
