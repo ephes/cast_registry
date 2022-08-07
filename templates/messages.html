@@ -1,0 +1,10 @@
+<article
+  class="fade-me-out"
+  hx-delete="{% url 'fade_out' %}"
+  hx-swap="outerHTML swap:1s"
+  hx-trigger="click, keyup[key=='Escape'] from:body"
+>
+  {% for message in messages %}
+    <aside>{{message}}</aside>
+  {% endfor %}
+</article>
