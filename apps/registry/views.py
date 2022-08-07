@@ -86,9 +86,13 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
         form = DeploymentForm(request.POST, initial={"domain": domain})
         if form.is_valid():
             deployment = form.save()
-            deployment.start()
-            messages.add_message(request, messages.INFO, "Deployment created successfully")
             success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+            messages.add_message(request, messages.INFO, "Deployment created successfully")
+            try:
+                deployment.start()
+            except Exception as exc:
+                error_msg = str(exc)
+                messages.add_message(request, messages.ERROR, f"Could not start deployment due to: {error_msg}")
             return HttpResponseRedirect(success_url)
     else:
         form = DeploymentForm(initial={"target": Deployment.Target.DEPLOY.value, "domain": domain})

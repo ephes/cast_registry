@@ -74,6 +74,18 @@ def test_post_domain_deployments_invalid_form(client, domain):
     assert "errorlist" in html
 
 
+@pytest.mark.django_db
+def test_post_domain_deployments_start_deployment_exception(client, domain):
+    user = domain.owner
+    client.login(username=user.username, password=user._password)
+    url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+    with patch("apps.registry.models.Deployment.start", side_effect=Exception("Test")):
+        r = client.post(url, data={"target": "DP"}, follow=True)
+    success_msg, error_msg = r.context["messages"]
+    assert str(success_msg) == "Deployment created successfully"
+    assert str(error_msg) == "Could not start deployment due to: Test"
+
+
 def test_post_domains_authenticated(client, user):
     client.login(username=user.username, password=user._password)
     url = reverse("domains")
