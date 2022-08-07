@@ -1,4 +1,5 @@
 import abc
+import logging
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
@@ -10,6 +11,8 @@ import httpx
 from django.conf import settings
 from django.utils import timezone
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class Step(BaseModel):
@@ -106,6 +109,10 @@ class ProductionClient(AbstractClient):
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
         with client(base_url=self.base_url, headers=headers) as client:
             r = client.post("deployments/", json=context.dict())
+        if r.status_code > 400:
+            logger.error(f"start deploy request status is: {r.status_code}")
+            logger.error(f"response details: {r.json()['detail']}")
+        r.raise_for_status()
         deployment_id = int(r.json()["id"])
         return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 

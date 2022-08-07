@@ -43,11 +43,16 @@ def test_sort_steps():
 
 
 class Response:
-    def __init__(self, status_code):
+    def __init__(self, status_code, json={"foo": "bar", "id": 1}):
         self.status_code = status_code
+        self.json_data = json
 
     def json(self):
-        return {"foo": "bar", "id": 1}
+        return self.json_data
+
+    def raise_for_status(self):
+        if self.status_code == 401:
+            raise Exception("not authorized")
 
 
 class OkHttpxClient(httpx.Client):
@@ -61,6 +66,9 @@ class OkHttpxClient(httpx.Client):
 class BrokenHttpxClient(httpx.Client):
     def get(self, path):
         return Response(401)
+
+    def post(self, path, json={}):
+        return Response(401, json={"detail": "Could not validate credentials"})
 
 
 class Remote:
@@ -93,6 +101,14 @@ def test_production_client_fetch_deployment_ok():
     deployment = Deployment(1)
     fetched_deployment = client.fetch_deployment(deployment, client=OkHttpxClient)
     assert isinstance(fetched_deployment, RemoteDeployment)
+
+
+def test_production_client_start_deployment_unauthorized():
+    client = ProductionClient()
+    deployment = Deployment(1)
+    deployment.domain = Domain()
+    with pytest.raises(Exception):
+        client.start_deployment(deployment, client=BrokenHttpxClient)
 
 
 def test_production_client_start_deployment():
