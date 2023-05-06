@@ -27,3 +27,6 @@ staticfiles
 # vim
 *.swp
 *.swo
+
+# mac
+.DS_STORE
