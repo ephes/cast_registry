@@ -30,3 +30,6 @@ staticfiles
 
 # mac
 .DS_STORE
+
+# pycharm
+.idea

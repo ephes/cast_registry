@@ -1,8 +1,24 @@
-# Typical Command Lines
+## Installation for development
 
-Run tests:
+### Create a venv & activate it and install the dev requirements
 ```shell
-$ pytest
+     uv venv -p python3.13
+     source .venv/bin/activate.fish
+     uv sync
+```
+
+### Set up the database
+```shell
+    initdb databases/postgres
+    postgres -D databases/postgres  # in a different terminal tab
+    createdb cast_registry
+    createuser cast_registry
+    python manage.py migrate
+```
+
+### Run the tests
+```shell
+    pytest
 ```
 
 Run tests and show coverage:
@@ -13,50 +29,6 @@ $ coverage run && coverage html && open htmlcov/index.html
 Mypy:
 ```shell
 $ mypy apps/registry
-```
-
-# Create Database
-
-Create the database directory:
-
-```shell
-$ mkdir databases/postgres
-```
-
-Initialize the database:
-
-```shell
-$ initdb -D databases/postgres
-```
-
-Start the postgres server:
-
-```shell
-$ honcho start
-```
-
-Create the application database:
-
-```shell
-$ createdb cast_registry
-```
-
-Create the database user:
-
-```shell
-$ createuser cast_registry
-```
-
-Grant access for database to user:
-
-```shell
-$ psql -d cast_registry -c "GRANT ALL PRIVILEGES ON DATABASE cast_registry to cast_registry;"
-```
-
-Migrate:
-
-```shell
-$ python manage.py migrate
 ```
 
 # Services

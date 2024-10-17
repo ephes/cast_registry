@@ -8,22 +8,15 @@ from pathlib import Path
 def bootstrap():
     """
     Called when first non-standard lib import fails.
-
-    We need at least pip-tools, typer and rich to use this script.
     """
-
-    def get_base_prefix_compat():
-        """Get base/real prefix, or sys.prefix if there is none."""
-        return getattr(sys, "base_prefix", None) or getattr(sys, "real_prefix", None) or sys.prefix
-
-    def in_virtualenv():
-        return get_base_prefix_compat() != sys.prefix
-
-    if not in_virtualenv():
-        print("Please create a virtual environment first and activate it!")
+    if not (Path.cwd() / ".venv").exists():
+        print("No .venv found, creating one using uv...")
+        subprocess.run(["uv", "venv", ".venv"], check=True)
+        print("Please activate the virtual environment and run the script again.")
         sys.exit(1)
-    print("Empty virtualenv, installing development requirements..")
-    subprocess.call([sys.executable, "-m", "pip", "install", "-r", "requirements/develop.txt"])
+
+    print("Sync requirements via uv...")
+    subprocess.run(["uv", "sync"], check=True)
 
 
 try:
