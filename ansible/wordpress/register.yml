@@ -3,6 +3,7 @@
     - username: deploy
     - home_path: "/home/{{ username }}"
     - python_path: "{{ home_path }}/site/venv/bin/python"
+    - uv_path: "/usr/local/bin/uv"
     - ansible_python: "{{ home_path }}/ansible_venv/bin/python"
     - ansible_playbook_path: "{{ home_path }}/ansible_venv/bin/ansible-playbook"
     - service_name: "wordpress"
@@ -141,4 +142,8 @@
         mode: "0400"
 
     - name: Install PyMySQL into ansible venv
-      shell: "{{ ansible_python }} -m pip install --upgrade PyMySQL"
+      shell: "{{ uv_path }} pip install --upgrade PyMySQL"
+      become: true
+      become_user: "{{ username }}"
+      environment:
+        VIRTUAL_ENV: "{{ home_path }}/ansible_venv"
