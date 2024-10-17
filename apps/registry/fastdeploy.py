@@ -120,6 +120,7 @@ class ProductionClient(AbstractClient):
         deployment_id = deployment.remote.id
         assert isinstance(deployment_id, int)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
+        print("base url: ", self.base_url)
         with client(base_url=self.base_url, headers=headers) as client:
             r = client.get(f"deployments/{deployment_id}")
         if r.status_code != 200:
