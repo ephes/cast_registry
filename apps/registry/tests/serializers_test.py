@@ -5,5 +5,5 @@ from ..serializers import RegistryJSONEncoder
 def test_json_serializer(remote_deployment):
     serializer = RegistryJSONEncoder()
     encoded = serializer.encode(remote_deployment)
-    decoded = RemoteDeployment.parse_raw(encoded)
+    decoded = RemoteDeployment.model_validate_json(encoded)
     assert decoded == remote_deployment

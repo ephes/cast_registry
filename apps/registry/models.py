@@ -120,7 +120,7 @@ class Deployment(models.Model):
     def remote(self):
         if self.data is None:
             return None
-        return RemoteDeployment.parse_obj(self.data)
+        return RemoteDeployment.model_validate(self.data)
 
     def start(self, client: AbstractClient = Client()):
         self.data = client.start_deployment(self)

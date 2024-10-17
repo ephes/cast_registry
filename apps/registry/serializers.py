@@ -6,5 +6,5 @@ from .fastdeploy import RemoteDeployment, Step
 class RegistryJSONEncoder(DjangoJSONEncoder):
     def default(self, o):
         if isinstance(o, (RemoteDeployment, Step)):
-            return o.dict()
+            return o.model_dump()
         return super().default(o)

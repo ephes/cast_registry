@@ -108,7 +108,7 @@ class ProductionClient(AbstractClient):
         context = DeploymentContext(env=domain.context)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
         with client(base_url=self.base_url, headers=headers) as client:
-            r = client.post("deployments/", json=context.dict())
+            r = client.post("deployments/", json=context.model_dump())
         if r.status_code > 400:
             logger.error(f"start deploy request status is: {r.status_code}")
             logger.error(f"response details: {r.json()['detail']}")
