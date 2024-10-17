@@ -112,7 +112,7 @@ class Deployment(models.Model):
         default=Target.DEPLOY,
     )
 
-    data = models.JSONField(encoder=RegistryJSONEncoder, default=dict, null=True)
+    data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
     processed_steps = models.JSONField(encoder=RegistryJSONEncoder, default=list)
     domain = models.ForeignKey(Domain, on_delete=models.CASCADE)
 
