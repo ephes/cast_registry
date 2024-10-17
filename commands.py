@@ -94,7 +94,7 @@ def deploy(environment):
     """
     deploy_root = Path(__file__).parent / "ansible/registry"
     with working_directory(deploy_root):
-        subprocess.call(["ansible-playbook", "deploy.yml", "--limit", environment])
+        subprocess.call(["ansible-playbook", "playbook.yml", "--limit", environment])
 
 
 @cli.command()

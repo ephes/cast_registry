@@ -5,13 +5,13 @@ home_path: "/home/{{ username }}"
 deploy_home: /home/deploy
 site_path: "{{ home_path }}/site"
 services_path: "/home/deploy/site/services"
-global_python: python3.10
+global_python: python3.13
+uv_path: "/usr/local/bin/uv"
 ansible_venv_bin: "{{ deploy_home }}/ansible_venv/bin"
 ansible_python: "{{ ansible_venv_bin }}/python"
 default_path: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 venv_bin: "{{ site_path }}/venv/bin"
 python: "{{ venv_bin }}/python"
-pip_sync: "{{ venv_bin }}/pip-sync"
 fqdn: "registry.staging.django-cast.com"
 port: 10000
 django_settings_module: "config.settings.production"
