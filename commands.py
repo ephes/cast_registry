@@ -71,37 +71,9 @@ def coverage():
 @cli.command()
 def update():
     """
-    Update the development environment by calling:
-    - pip-compile production.in develop.in -> develop.txt
-    - pip-compile production.in -> production.txt
-    - pip-sync develop.txt
+    update the backend requirements using uv.
     """
-    base_command = [
-        sys.executable,
-        "-m",
-        "piptools",
-        "compile",
-        "--upgrade",
-        "--allow-unsafe",
-        "--generate-hashes",
-        "requirements/production.in",
-    ]
-    subprocess.call(  # develop + production
-        [
-            *base_command,
-            "requirements/develop.in",
-            "--output-file",
-            "requirements/develop.txt",
-        ]
-    )
-    subprocess.call(  # production only
-        [
-            *base_command,
-            "--output-file",
-            "requirements/production.txt",
-        ]
-    )
-    subprocess.call([sys.executable, "-m", "piptools", "sync", "requirements/develop.txt"])
+    subprocess.call(["uv", "lock", "--upgrade"])
 
 
 if __name__ == "__main__":
