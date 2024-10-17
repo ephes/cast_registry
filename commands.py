@@ -1,3 +1,4 @@
+import contextlib
 import os
 import platform
 import subprocess
@@ -74,6 +75,38 @@ def update():
     update the backend requirements using uv.
     """
     subprocess.call(["uv", "lock", "--upgrade"])
+
+
+@contextlib.contextmanager
+def working_directory(path):
+    """Changes working directory and returns to previous on exit."""
+    prev_cwd = Path.cwd().absolute()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(prev_cwd)
+
+
+def deploy(environment):
+    """
+    Use ansible-playbook to deploy the site to the staging server.
+    """
+    deploy_root = Path(__file__).parent / "ansible/registry"
+    with working_directory(deploy_root):
+        subprocess.call(["ansible-playbook", "deploy.yml", "--limit", environment])
+
+
+@cli.command()
+def deploy_staging():
+    """Deploy to the staging environment."""
+    deploy("staging")
+
+
+@cli.command()
+def deploy_production():
+    """Deploy to the production environment."""
+    deploy("production")
 
 
 if __name__ == "__main__":
