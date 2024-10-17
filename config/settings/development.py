@@ -20,4 +20,6 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # activate test client for UI tests
 DEPLOY_CLIENT = "test"
 
+# add debug toolbar
+INSTALLED_APPS.append("debug_toolbar")  # noqa
 MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")  # noqa

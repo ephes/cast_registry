@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "debug_toolbar",
     "django_extensions",
     "django_htmx",
     # contrib
