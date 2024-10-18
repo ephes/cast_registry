@@ -21,19 +21,19 @@
         url: https://packages.sury.org/php/apt.gpg
         state: present
 
-    - name: Add sury.org repository for php 8.1
+    - name: Add sury.org repository for php 8.3
       apt_repository:
         repo: deb https://packages.sury.org/php/ bullseye main
         state: present
 
     - name: Install required php packages
       apt:
-        name: ["php8.1", "php8.1-mysql", "php8.1-curl"]
+        name: ["php8.3", "php8.3-mysql", "php8.3-curl"]
 
     - name: Create php.ini
       template:
         src: php.ini.j2
-        dest: "/etc/php/8.1/cli/php.ini"
+        dest: "/etc/php/8.3/cli/php.ini"
         mode: '0644'
 
     - name: Add the unix user with a bash shell
