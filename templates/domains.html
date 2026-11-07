@@ -2,9 +2,9 @@
 {% block main %}
   <section>
     <form hx-post="{% url 'domains' %}"
-      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-      hx-target="#main"
-      action="{% url 'domains' %}" method="post">
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          hx-target="#main"
+          action="{% url 'domains' %}" method="post">
       <header>
         <h2>Register your Podcast</h2>
       </header>

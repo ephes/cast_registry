@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import httpx
 import pytest
 
 from ..fastdeploy import RemoteDeployment, Step
@@ -45,3 +46,14 @@ def finished_deployment(deployment, remote_deployment):
     deployment.save()
     deployment.refresh_from_db()
     return deployment
+
+
+@pytest.fixture(autouse=True)
+def deny_live_http(monkeypatch):
+    """Fake deploy clients may run; real HTTPX transports must never send requests."""
+
+    def deny(*args, **kwargs):
+        raise AssertionError("Live HTTP is forbidden in tests; inject a fake deploy client")
+
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", deny)
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", deny)

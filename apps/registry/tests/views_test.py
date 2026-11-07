@@ -168,3 +168,62 @@ def test_render_partial_when_htmx_is_true():
     r = render_partial_or_full(Request(True), "domains.html", {})
     html = r.content.decode("utf8")
     assert "doctype html" not in html
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("finished", [False, True])
+@pytest.mark.parametrize(
+    "name, escaped",
+    [
+        ("Compile files", "Compile files"),
+        ('<img src=x onerror="alert(1)">', "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;"),
+        ("<script>alert('x')</script> & done", "&lt;script&gt;alert(&#x27;x&#x27;)&lt;/script&gt; &amp; done"),
+    ],
+)
+def test_deploy_state_escapes_remote_step_text(client, deployment, finished, name, escaped):
+    from django.utils import timezone
+
+    from ..fastdeploy import RemoteDeployment, Step
+
+    client.force_login(deployment.domain.owner)
+    deployment.data = RemoteDeployment(id=1, no_steps_yet=True)
+    deployment.save()
+    remote = RemoteDeployment(id=1, steps=[Step(id=1, name=name)], finished=timezone.now() if finished else None)
+    with patch("apps.registry.fastdeploy.TestClient.fetch_deployment", return_value=remote):
+        response = client.get(reverse("deploy_state", args=[deployment.pk]))
+    assert response.status_code == (286 if finished else 200)
+    assert f"<aside>{escaped}</aside>" in response.content.decode()
+    assert b"<script>" not in response.content
+    assert b"<img" not in response.content
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "query, expected_page",
+    [("", 1), ("?page=2", 2), ("?page=3", 3), ("?page=invalid", 1), ("?page=99", 3), ("?page=1&page=2", 2)],
+)
+@pytest.mark.parametrize("listing", ["domains", "deployments"])
+def test_owner_list_pagination(client, user, other_user, query, expected_page, listing):
+    from ..models import Deployment
+
+    owned = [Domain.objects.create(owner=user, fqdn=f"domain-{i}.example.com") for i in range(5)]
+    foreign = Domain.objects.create(owner=other_user, fqdn="foreign.example.com")
+    if listing == "domains":
+        url = reverse("domains")
+        expected = owned
+    else:
+        url = reverse("domain_deployments", args=[owned[0].pk])
+        expected = [Deployment.objects.create(domain=owned[0]) for _ in range(5)]
+        Deployment.objects.create(domain=foreign)
+        Deployment.objects.create(domain=owned[1])
+    client.force_login(user)
+    response = client.get(url + query)
+    assert response.status_code == 200
+    page = response.context["page"]
+    assert page.number == expected_page
+    assert page.paginator.count == 5
+    start = (expected_page - 1) * 2
+    stop = start + 2
+    assert list(page.object_list) == expected[start:stop]
+    if listing == "domains":
+        assert b"foreign.example.com" not in response.content
