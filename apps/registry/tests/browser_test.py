@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.conf import settings
+from django.db import connections
 from django.urls import reverse
 from playwright.sync_api import expect, sync_playwright
 
@@ -14,14 +15,14 @@ from ..models import Deployment, Domain
 
 @pytest.fixture
 def browser_page(client, user, monkeypatch):
-    # Playwright callbacks run on its event loop, on this one isolated DB thread.
+    # Playwright callbacks use a separate Django connection; fixtures must be committed.
     monkeypatch.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
     client.force_login(user)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page()
 
-        def respond(route):
+        def respond_impl(route):
             request = route.request
             url = urlsplit(request.url)
             if url.path.startswith("/static/"):
@@ -39,12 +40,19 @@ def browser_page(client, user, monkeypatch):
                 response = client.get(url.path + ("?" + url.query if url.query else ""), headers=headers)
             route.fulfill(status=response.status_code, body=response.content, content_type="text/html")
 
+        def respond(route):
+            try:
+                respond_impl(route)
+            finally:
+                connections.close_all()
+
         page.route("**/*", respond)
         yield page
         browser.close()
+        connections.close_all()
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_registration_swaps_feedback_focus_and_pagination(browser_page, user, client):
     page = browser_page
     for i in range(4):
@@ -72,7 +80,7 @@ def test_registration_swaps_feedback_focus_and_pagination(browser_page, user, cl
     assert b"<!doctype html>" in response.content
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize("outcome", ["success", "refused", "transport"])
 def test_deployment_single_pending_submission(browser_page, domain, outcome):
     page = browser_page
@@ -109,7 +117,7 @@ def test_deployment_single_pending_submission(browser_page, domain, outcome):
     assert Deployment.objects.filter(domain=domain).count() == (0 if outcome == "transport" else 1)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_pagination_history_cache_miss_keeps_document(browser_page, user):
     page = browser_page
     for i in range(4):
