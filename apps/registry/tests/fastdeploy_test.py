@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 import httpx
@@ -42,35 +43,22 @@ def test_sort_steps():
     assert [start_none, start_none] == sorted([start_none, start_none])
 
 
-class Response:
-    def __init__(self, status_code, json={"foo": "bar", "id": 1}):
-        self.status_code = status_code
-        self.json_data = json
-
-    def json(self):
-        return self.json_data
-
-    def raise_for_status(self):
-        if self.status_code == 401:
-            raise httpx.HTTPStatusError(
-                "not authorized", request=httpx.Request("GET", "https://example.invalid"), response=httpx.Response(401)
-            )
+@pytest.fixture(autouse=True)
+def controller_origin(settings):
+    settings.DEPLOY_BASE_URL = "https://controller.example.test/"
 
 
-class OkHttpxClient(httpx.Client):
-    def get(self, path):
-        return Response(200)
+class OkHttpxClient(httpx.AsyncClient):
+    def __init__(self, **kwargs):
+        super().__init__(transport=httpx.MockTransport(self.respond), **kwargs)
 
-    def post(self, path, json={}):
-        return Response(200)
+    def respond(self, request):
+        return httpx.Response(200, stream=httpx.ByteStream(json.dumps({"foo": "bar", "id": 1}).encode()))
 
 
-class BrokenHttpxClient(httpx.Client):
-    def get(self, path):
-        return Response(401)
-
-    def post(self, path, json={}):
-        return Response(401, json={"detail": "Could not validate credentials"})
+class BrokenHttpxClient(OkHttpxClient):
+    def respond(self, request):
+        return httpx.Response(401, json={"detail": "Could not validate credentials"})
 
 
 class Remote:
@@ -148,8 +136,8 @@ def test_production_poll_malformed_json_has_validation_boundary(payload):
     from pydantic import ValidationError
 
     class MalformedClient(OkHttpxClient):
-        def get(self, path):
-            return Response(200, json=payload)
+        def respond(self, request):
+            return httpx.Response(200, stream=httpx.ByteStream(json.dumps(payload).encode()))
 
     with pytest.raises(ValidationError):
         ProductionClient().fetch_deployment(Deployment(1), client=MalformedClient)
@@ -157,8 +145,8 @@ def test_production_poll_malformed_json_has_validation_boundary(payload):
 
 def test_production_start_logs_status_without_remote_detail(caplog):
     class PrivateFailureClient(BrokenHttpxClient):
-        def post(self, path, json=None):
-            return Response(401, json={"detail": "private credential detail"})
+        def respond(self, request):
+            return httpx.Response(401, json={"detail": "private credential detail"})
 
     deployment = Deployment(1)
     deployment.domain = Domain()

@@ -4,6 +4,7 @@ from json import JSONDecodeError
 import httpx
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
@@ -35,7 +36,7 @@ def deploy_state(request: HttpRequest, deployment_id: int) -> HttpResponse:
     poll_error = False
     try:
         deployment.refresh_progress()
-    except (httpx.HTTPError, JSONDecodeError, ValidationError) as exc:
+    except (httpx.HTTPError, JSONDecodeError, ValidationError, ImproperlyConfigured) as exc:
         logger.warning("Progress refresh unavailable for deployment %s (%s)", deployment.pk, type(exc).__name__)
         # Keep the last successful evidence without exposing remote error details.
         deployment.refresh_from_db()

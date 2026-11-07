@@ -1,14 +1,21 @@
 import abc
+import asyncio
+import ipaddress
+import json
 import logging
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
     from .models import Deployment  # pragma: no cover
 
 import httpx
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator
 from django.utils import timezone
 from pydantic import BaseModel
 
@@ -94,35 +101,106 @@ class AbstractClient(abc.ABC):
 
 
 class ProductionClient(AbstractClient):
-    def __init__(
-        self,
-        *,
-        base_url: str = settings.DEPLOY_BASE_URL,
-        headers: dict = {},
-    ):
-        self.base_url = base_url
-        self.headers = headers
+    max_response_bytes = 1024 * 1024
+    exchange_timeout = 10.0
 
-    def start_deployment(self, deployment, client=httpx.Client) -> RemoteDeployment:
-        domain = deployment.domain
-        context = DeploymentContext(env=domain.context)
+    def __init__(
+        self, *, base_url: str | None = None, headers: dict | None = None, allow_loopback_http: bool | None = None
+    ):
+        self.base_url = settings.DEPLOY_BASE_URL if base_url is None else base_url
+        self.headers = {} if headers is None else headers
+        self.allow_loopback_http = (
+            settings.DEPLOY_ALLOW_LOOPBACK_HTTP if allow_loopback_http is None else allow_loopback_http
+        )
+
+    def validate_base_url(self):
+        """Reject unsafe configuration before constructing credential-bearing requests."""
+        try:
+            if any(ord(char) <= 32 or ord(char) >= 127 for char in self.base_url) or "\\" in self.base_url:
+                raise ValueError
+            URLValidator(schemes=["http", "https"])(self.base_url)
+            parts = urlsplit(self.base_url)
+            if (
+                parts.username is not None
+                or parts.password is not None
+                or "#" in self.base_url
+                or "?" in self.base_url
+            ):
+                raise ValueError
+            if parts.port is not None and not 1 <= parts.port <= 65535:
+                raise ValueError
+            if parts.scheme == "http":
+                host = parts.hostname
+                assert host is not None
+                try:
+                    loopback = ipaddress.ip_address(host).is_loopback
+                except ValueError:
+                    loopback = host == "localhost"
+                if not self.allow_loopback_http or not loopback:
+                    raise ValueError
+        except (ValueError, DjangoValidationError):
+            raise ImproperlyConfigured(
+                "DEPLOY_BASE_URL must be an absolute HTTPS URL without userinfo, query or fragment. "
+                "Loopback HTTP requires DEPLOY_ALLOW_LOOPBACK_HTTP for local development."
+            ) from None
+
+    async def request_json(self, method, path, headers, client, payload=None):
+        try:
+            # Async cancellation covers headers and drip-fed bodies, not just individual reads.
+            async with asyncio.timeout(self.exchange_timeout):
+                async with client(
+                    base_url=self.base_url,
+                    headers=headers | {"Accept-Encoding": "identity"},
+                    follow_redirects=False,
+                    timeout=self.exchange_timeout,
+                ) as http:
+                    async with http.stream(method, path, json=payload) as response:
+                        response.raise_for_status()
+                        if response.headers.get("content-encoding", "identity").lower() != "identity":
+                            raise httpx.DecodingError("Controller response must use identity encoding")
+                        body = bytearray()
+                        async for chunk in response.aiter_raw():
+                            if len(body) + len(chunk) > self.max_response_bytes:
+                                raise httpx.DecodingError("Controller response byte limit exceeded")
+                            body.extend(chunk)
+                        try:
+                            return json.loads(body)
+                        except (ValueError, RecursionError):
+                            raise httpx.DecodingError("Invalid controller JSON response") from None
+        except TimeoutError:
+            raise httpx.TimeoutException("Controller exchange time limit exceeded") from None
+
+    def exchange(self, *args):
+        # loop.close() shuts down its executor without joining an uncancellable
+        # native DNS lookup. asyncio.run() joins it, extending the request/row lock.
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self.request_json(*args))
+        finally:
+            try:
+                loop.run_until_complete(loop.shutdown_asyncgens())
+            finally:
+                loop.close()
+
+    def start_deployment(self, deployment, client=httpx.AsyncClient) -> RemoteDeployment:
+        self.validate_base_url()
+        context = DeploymentContext(env=deployment.domain.context)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
-        with client(base_url=self.base_url, headers=headers) as client:
-            r = client.post("deployments/", json=context.model_dump())
-        if r.status_code > 400:
-            logger.error(f"start deploy request status is: {r.status_code}")
-        r.raise_for_status()
-        deployment_id = int(r.json()["id"])
+        try:
+            result = self.exchange("POST", "deployments/", headers, client, context.model_dump())
+        except httpx.HTTPStatusError as exc:
+            logger.error("start deploy request status is: %s", exc.response.status_code)
+            raise
+        deployment_id = int(result["id"])
         return RemoteDeployment(id=deployment_id, no_steps_yet=True)
 
-    def fetch_deployment(self, deployment, client=httpx.Client) -> RemoteDeployment:
+    def fetch_deployment(self, deployment, client=httpx.AsyncClient) -> RemoteDeployment:
+        self.validate_base_url()
         deployment_id = deployment.remote.id
         assert isinstance(deployment_id, int)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
-        with client(base_url=self.base_url, headers=headers) as client:
-            r = client.get(f"deployments/{deployment_id}")
-        r.raise_for_status()
-        remote_deployment = RemoteDeployment.model_validate(r.json())
+        result = self.exchange("GET", f"deployments/{deployment_id}", headers, client)
+        remote_deployment = RemoteDeployment.model_validate(result)
         remote_deployment.steps.sort(reverse=True)
         return remote_deployment
 
