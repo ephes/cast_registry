@@ -1,35 +1,63 @@
-## Installation for development
+## Isolated development and validation
 
-### Create a venv & activate it and install the dev requirements
+Use uv 0.13.7 and Python 3.11+ (CI tests 3.11 and 3.13). No `.env`, service
+tokens, production database or deployment controller is needed for validation.
+
 ```shell
-     uv venv -p python3.13
-     source .venv/bin/activate.fish
-     uv sync
+uv sync --frozen --python 3.13
+export DJANGO_SETTINGS_MODULE=config.settings.test
+export DATABASE_URL=postgres://registry_test@localhost:55432/registry_test
+mkdir -p databases
+initdb databases/postgres --auth=trust --username=registry_test --encoding=UTF8
+pg_ctl -D databases/postgres -l databases/postgres.log -o '-p 55432' start
+createdb -h localhost -p 55432 -U registry_test registry_test
+uv run --frozen python manage.py check
+uv run --frozen python manage.py makemigrations --check --dry-run
+uv run --frozen python manage.py migrate --noinput
+uv run --frozen python manage.py migrate --check
+uv run --frozen coverage run
+uv run --frozen coverage report --fail-under=100
+uv run --frozen mypy apps/registry
+pg_ctl -D databases/postgres stop
 ```
 
-### Set up the database
+Choose an unused local port. Use only a new,
+disposable cluster: tests create/drop their own test database. When PostgreSQL
+is unavailable, `DATABASE_URL=sqlite:///:memory: uv run --frozen pytest` provides
+a local application check; it does not replace the PostgreSQL CI gate.
+
+The test settings use a dummy key, in-memory email and the fake deployment
+client. An autouse fixture blocks real HTTPX transports, including accidental
+production deployment calls; production-client tests inject fake HTTP clients.
+All rows and notebook smoke content are synthetic. Mypy also loads test settings.
+
+Run the configured formatters/linters without modifying files (migrations retain
+the existing pre-commit exclusion):
+
 ```shell
-    initdb databases/postgres
-    postgres -D databases/postgres  # in a different terminal tab
-    createdb cast_registry
-    createuser cast_registry
-    python manage.py migrate
+uv run --frozen black --check --extend-exclude migrations apps config scripts manage.py commands.py
+uv run --frozen isort --check-only --skip-glob '*/migrations/*' apps config scripts manage.py commands.py
+uv run --frozen flake8 --extend-exclude migrations apps config scripts manage.py commands.py
+uv run --frozen djhtml --check -t 2 templates
 ```
 
-### Run the tests
-```shell
-    pytest
-```
+Push/PR CI runs these checks, mypy, fresh/missing migration checks, tests with
+100% registry coverage, and notebook CLI/rendering smoke on disposable PostgreSQL
+17 services. No deployment commands run in CI. The small template indentation
+cleanup only brings existing templates into sync with the configured formatter.
+There is no existing changelog; maintenance and behavior changes are recorded here.
 
-Run tests and show coverage:
-```shell
-$ coverage run && coverage html && open htmlcov/index.html
-```
+## Registry view contracts
 
-Mypy:
-```shell
-$ mypy apps/registry
-```
+Remote deployment step names are plain text. Poll responses escape HTML, script,
+ampersand and quote characters inside the existing `<aside>` markup; a finished
+deployment still returns status 286 to stop polling. Owner authorization is unchanged.
+
+Domain and deployment history pages use scalar `page` query values (the last
+value wins when repeated). Missing or nonnumeric values select page 1;
+out-of-range values select the last page, following Django Paginator's normal
+fallback. Domain lists remain owner-filtered and deployment histories remain
+restricted to the authorized domain.
 
 # Services
 

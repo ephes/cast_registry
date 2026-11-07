@@ -4,6 +4,7 @@ from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.utils.html import format_html_join
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django_htmx.http import HTMX_STOP_POLLING
@@ -19,10 +20,7 @@ def home(request: HttpRequest) -> HttpResponse:
 
 
 def build_steps_html(steps: Steps) -> str:
-    lines = []
-    for step in steps:
-        lines.append(f"<aside>{step.name}</aside>")
-    return "".join(lines)
+    return format_html_join("", "<aside>{}</aside>", ((step.name,) for step in steps))
 
 
 @login_required
@@ -70,8 +68,7 @@ def domains(request: HttpRequest) -> HttpResponse:
 
     assert not request.user.is_anonymous  # type guard for mypy
     registered_domains = Domain.objects.filter(owner=request.user).order_by("pk")
-    get_params = dict(request.GET)
-    page_num = get_params.get("page", "1")
+    page_num = request.GET.get("page", "1")
     page = Paginator(object_list=registered_domains, per_page=2).get_page(page_num)
     context = {"form": form, "page": page}
     return render_partial_or_full(request, "domains.html", context)
@@ -99,8 +96,7 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
 
     deployments = Deployment.objects.filter(domain=domain).order_by("pk")
     in_progress = [d for d in deployments if d.in_progress]
-    get_params = dict(request.GET)
-    page_num = get_params.get("page", "1")
+    page_num = request.GET.get("page", "1")
     page = Paginator(object_list=deployments, per_page=2).get_page(page_num)
     context = {
         "form": form,

@@ -10,6 +10,9 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from .base import *  # noqa
 
+DEBUG = False
+SECRET_KEY = "synthetic-test-key"
+ALLOWED_HOSTS = ["testserver", "localhost"]
 DEPLOY_CLIENT = "test"
 
 # EMAIL

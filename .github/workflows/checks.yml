@@ -16,3 +16,53 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --frozen --all-groups
       - run: uv run --frozen --group audit python scripts/audit_dependencies.py
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: registry_test
+          POSTGRES_USER: registry_test
+          POSTGRES_PASSWORD: synthetic-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U registry_test -d registry_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://registry_test:synthetic-only@localhost:5432/registry_test
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      JUPYTER_CONFIG_DIR: ${{ runner.temp }}/jupyter
+      IPYTHONDIR: ${{ runner.temp }}/ipython
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: '0.13.7'
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen
+      - name: Nonwriting style checks
+        run: |
+          uv run --frozen black --check --extend-exclude migrations apps config scripts manage.py commands.py
+          uv run --frozen isort --check-only --skip-glob '*/migrations/*' apps config scripts manage.py commands.py
+          uv run --frozen flake8 --extend-exclude migrations apps config scripts manage.py commands.py
+          uv run --frozen djhtml --check -t 2 templates
+      - run: uv run --frozen mypy apps/registry
+      - name: Fresh database and migration consistency
+        run: |
+          uv run --frozen python manage.py check
+          uv run --frozen python manage.py makemigrations --check --dry-run
+          uv run --frozen python manage.py migrate --noinput
+          uv run --frozen python manage.py migrate --check
+      - name: Tests and coverage (live HTTP forbidden)
+        run: |
+          uv run --frozen coverage run
+          uv run --frozen coverage report --fail-under=100
+      - name: Notebook CLI and rendering smoke
+        run: |
+          uv run --frozen jupyter lab --version
+          uv run --frozen jupyter notebook --version
+          uv run --frozen python -c 'import notebook, jupyterlab, jupyter_server, tornado; import nbformat; from nbconvert import HTMLExporter; html, _ = HTMLExporter().from_notebook_node(nbformat.v4.new_notebook(cells=[nbformat.v4.new_markdown_cell("synthetic notebook")])); assert "synthetic notebook" in html'

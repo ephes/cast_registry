@@ -48,10 +48,14 @@ ignore_missing_imports = true
 plugins = ["mypy_django_plugin.main"]
 
 [tool.django-stubs]
-django_settings_module = "config.settings.development"
+django_settings_module = "config.settings.test"
 
 [dependency-groups]
 dev = [
+    "black==26.10.1",
+    "isort==5.13.2",
+    "flake8==7.1.1",
+    "djhtml==3.0.6",
     "coverage>=7.6.3",
     "django-stubs>=5.2,<5.3",
     "jupyterlab>=4.6.4,<5",

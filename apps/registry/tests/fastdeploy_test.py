@@ -131,3 +131,11 @@ def test_getting_production_client(settings):
     from apps.registry.fastdeploy import Client
 
     assert isinstance(Client, type(ProductionClient))
+
+
+def test_live_deployment_transport_is_denied():
+    client = ProductionClient(base_url="https://deploy.example.invalid/")
+    deployment = Deployment(1)
+    deployment.domain = Domain()
+    with pytest.raises(AssertionError, match="Live HTTP is forbidden"):
+        client.start_deployment(deployment)
