@@ -131,3 +131,35 @@ def test_pagination_history_cache_miss_keeps_document(browser_page, user):
     expect(page.locator("body > header")).to_have_count(1)
     expect(page.locator("body > footer")).to_have_count(1)
     expect(page.locator("main#main")).to_have_count(1)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_progress_snapshot_error_retry_and_terminal_swap(browser_page, deployment):
+    import httpx
+    from django.utils import timezone
+
+    from ..fastdeploy import RemoteDeployment, Step
+
+    deployment.data = RemoteDeployment(id=1, no_steps_yet=True)
+    deployment.save()
+    first = RemoteDeployment(id=1, steps=[Step(id=1, name="download")])
+    final = RemoteDeployment(id=1, steps=[Step(id=2, name="install")], finished=timezone.now())
+    page = browser_page
+    with patch(
+        "apps.registry.fastdeploy.TestClient.fetch_deployment",
+        side_effect=[first, httpx.ConnectError("private controller detail"), final],
+    ) as fetch:
+        page.goto("http://testserver" + reverse("domain_deployments", args=[deployment.domain_id]))
+        expect(page.locator("[data-progress-steps]")).to_contain_text("download")
+        expect(page.get_by_role("alert")).to_have_text("Progress unavailable. Displayed steps may be stale.")
+        expect(page.locator("[data-progress-steps]").locator("aside", has_text="download")).to_have_count(1)
+        expect(page.get_by_text("Last successful refresh:", exact=False)).to_be_visible()
+        assert page.get_by_text("private controller detail").count() == 0
+        page.get_by_role("button", name="Refresh progress").click()
+        expect(page.get_by_role("status").filter(has_text="Deployment finished.")).to_be_visible()
+        expect(page.locator("[data-progress-steps]").locator("aside", has_text="download")).to_have_count(1)
+        expect(page.locator("[data-progress-steps]").locator("aside", has_text="install")).to_have_count(1)
+        expect(page.locator("[data-progress-steps]").locator("aside", has_text="Deployment is done!")).to_have_count(1)
+        expect(page.locator(f"#progress-{deployment.pk}")).to_have_count(1)
+        assert page.locator('[hx-trigger="every 1s"]').count() == 0
+        assert fetch.call_count == 3

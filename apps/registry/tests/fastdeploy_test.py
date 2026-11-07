@@ -52,7 +52,9 @@ class Response:
 
     def raise_for_status(self):
         if self.status_code == 401:
-            raise Exception("not authorized")
+            raise httpx.HTTPStatusError(
+                "not authorized", request=httpx.Request("GET", "https://example.invalid"), response=httpx.Response(401)
+            )
 
 
 class OkHttpxClient(httpx.Client):
@@ -91,8 +93,8 @@ def test_production_client_fetch_deployment_broken():
     """Response status is not ok"""
     client = ProductionClient()
     deployment = Deployment(1)
-    fetched_deployment = client.fetch_deployment(deployment, client=BrokenHttpxClient)
-    assert isinstance(fetched_deployment, Remote)
+    with pytest.raises(httpx.HTTPStatusError):
+        client.fetch_deployment(deployment, client=BrokenHttpxClient)
 
 
 def test_production_client_fetch_deployment_ok():
@@ -139,3 +141,28 @@ def test_live_deployment_transport_is_denied():
     deployment.domain = Domain()
     with pytest.raises(AssertionError, match="Live HTTP is forbidden"):
         client.start_deployment(deployment)
+
+
+@pytest.mark.parametrize("payload", [[], None, "unexpected", 1, {"steps": "invalid"}])
+def test_production_poll_malformed_json_has_validation_boundary(payload):
+    from pydantic import ValidationError
+
+    class MalformedClient(OkHttpxClient):
+        def get(self, path):
+            return Response(200, json=payload)
+
+    with pytest.raises(ValidationError):
+        ProductionClient().fetch_deployment(Deployment(1), client=MalformedClient)
+
+
+def test_production_start_logs_status_without_remote_detail(caplog):
+    class PrivateFailureClient(BrokenHttpxClient):
+        def post(self, path, json=None):
+            return Response(401, json={"detail": "private credential detail"})
+
+    deployment = Deployment(1)
+    deployment.domain = Domain()
+    with pytest.raises(httpx.HTTPStatusError):
+        ProductionClient().start_deployment(deployment, client=PrivateFailureClient)
+    assert "401" in caplog.text
+    assert "private credential detail" not in caplog.text

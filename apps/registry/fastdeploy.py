@@ -111,7 +111,6 @@ class ProductionClient(AbstractClient):
             r = client.post("deployments/", json=context.model_dump())
         if r.status_code > 400:
             logger.error(f"start deploy request status is: {r.status_code}")
-            logger.error(f"response details: {r.json()['detail']}")
         r.raise_for_status()
         deployment_id = int(r.json()["id"])
         return RemoteDeployment(id=deployment_id, no_steps_yet=True)
@@ -120,12 +119,10 @@ class ProductionClient(AbstractClient):
         deployment_id = deployment.remote.id
         assert isinstance(deployment_id, int)
         headers = self.headers | {"authorization": f"Bearer {deployment.service_token}"}
-        print("base url: ", self.base_url)
         with client(base_url=self.base_url, headers=headers) as client:
             r = client.get(f"deployments/{deployment_id}")
-        if r.status_code != 200:
-            return deployment.remote
-        remote_deployment = RemoteDeployment(**r.json())
+        r.raise_for_status()
+        remote_deployment = RemoteDeployment.model_validate(r.json())
         remote_deployment.steps.sort(reverse=True)
         return remote_deployment
 

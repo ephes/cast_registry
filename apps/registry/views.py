@@ -1,26 +1,27 @@
+import logging
+from json import JSONDecodeError
+
+import httpx
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
-from django.utils.html import format_html_join
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 from django_htmx.http import HTMX_STOP_POLLING
+from pydantic import ValidationError
 
-from .fastdeploy import Steps
 from .forms import DeploymentForm, DomainForm
 from .models import Deployment, Domain
+
+logger = logging.getLogger(__name__)
 
 
 @require_GET
 def home(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html")
-
-
-def build_steps_html(steps: Steps) -> str:
-    return format_html_join("", "<aside>{}</aside>", ((step.name,) for step in steps))
 
 
 @login_required
@@ -30,12 +31,16 @@ def deploy_state(request: HttpRequest, deployment_id: int) -> HttpResponse:
     domain = deployment.domain
     if domain.owner != request.user:
         return HttpResponse(status=403)
-    new_steps = deployment.get_new_steps()
-    html = build_steps_html(new_steps)
-    if deployment.has_finished:
-        return HttpResponse(status=HTMX_STOP_POLLING, content=html)
-    else:
-        return HttpResponse(status=200, content=html)
+    poll_error = False
+    try:
+        deployment.refresh_progress()
+    except (httpx.HTTPError, JSONDecodeError, ValidationError) as exc:
+        logger.warning("Progress refresh unavailable for deployment %s (%s)", deployment.pk, type(exc).__name__)
+        # Keep the last successful evidence without exposing remote error details.
+        deployment.refresh_from_db()
+        poll_error = True
+    status = HTMX_STOP_POLLING if deployment.has_finished else 200
+    return render(request, "progress.html", {"deployment": deployment, "poll_error": poll_error}, status=status)
 
 
 @csrf_exempt
@@ -84,15 +89,23 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
         if form.is_valid():
             deployment = form.save()
             success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
-            messages.add_message(request, messages.INFO, "Deployment created successfully")
             try:
                 deployment.start()
             except Exception as exc:
-                error_msg = str(exc)
-                messages.add_message(request, messages.ERROR, f"Could not start deployment due to: {error_msg}")
+                logger.warning("Start unconfirmed for deployment %s (%s)", deployment.pk, type(exc).__name__)
+                deployment.start_failed = True
+                deployment.save(update_fields=["start_failed"])
+                messages.error(
+                    request, "Deployment start could not be confirmed. Check its status before a new attempt."
+                )
+            else:
+                messages.info(request, "Deployment created successfully")
             return HttpResponseRedirect(success_url)
     else:
-        form = DeploymentForm(initial={"target": Deployment.Target.DEPLOY.value, "domain": domain})
+        target = request.GET.get("target", Deployment.Target.DEPLOY.value)
+        if target not in Deployment.Target.values:
+            target = Deployment.Target.DEPLOY.value
+        form = DeploymentForm(initial={"target": target, "domain": domain})
 
     deployments = Deployment.objects.filter(domain=domain).order_by("pk")
     in_progress = [d for d in deployments if d.in_progress]

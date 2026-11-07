@@ -2,10 +2,11 @@ import secrets
 import string
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .fastdeploy import AbstractClient, Client, RemoteDeployment, Steps
+from .fastdeploy import AbstractClient, Client, RemoteDeployment, Step, Steps
 from .serializers import RegistryJSONEncoder
 
 
@@ -112,6 +113,8 @@ class Deployment(models.Model):
         default=Target.DEPLOY,
     )
 
+    start_failed = models.BooleanField(default=False)
+    last_updated = models.DateTimeField(null=True)
     data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
     processed_steps = models.JSONField(encoder=RegistryJSONEncoder, default=list)
     domain = models.ForeignKey(Domain, on_delete=models.CASCADE)
@@ -126,23 +129,31 @@ class Deployment(models.Model):
         self.data = client.start_deployment(self)
         self.save()
 
-    def get_new_steps(self, client: AbstractClient = Client()) -> Steps:
-        """
-        If the deployment has finished, it's possible to return early that
-        there are no new steps.
+    @property
+    def progress_steps(self) -> Steps:
+        steps = [Step.model_validate(step) for step in self.processed_steps]
+        if self.remote is not None:
+            steps.extend(self.remote.steps_for_client)
+        # Remote IDs identify steps; legacy fixtures may have only a name.
+        unique = {step.id if step.id is not None else step.name: step for step in steps}
+        return list(unique.values())
 
-        If it hasn't finished yet, fetch a new version of the deployment
-        via client and use it to calculate the list of unseen steps.
-        """
-        if self.remote.has_finished:
-            return []
-
-        deployment = client.fetch_deployment(self)
-        new_steps = deployment.get_new_steps(self.remote)
-        self.processed_steps.extend(new_steps)
-        self.data = deployment  # deployment is the new remote
-        self.save()
-        return new_steps
+    def refresh_progress(self, client: AbstractClient = Client()) -> Steps:
+        """Publish a cumulative snapshot, serializing refreshes for this row."""
+        with transaction.atomic():
+            current = Deployment.objects.select_for_update().get(pk=self.pk)
+            if current.in_progress:
+                # Fetch under the row lock so competing viewers cannot overwrite history.
+                remote = client.fetch_deployment(current)
+                current.processed_steps = current.progress_steps
+                current.data = remote
+                current.processed_steps = current.progress_steps
+                current.last_updated = timezone.now()
+                current.save(update_fields=["data", "processed_steps", "last_updated"])
+            self.data = current.data
+            self.processed_steps = current.processed_steps
+            self.last_updated = current.last_updated
+        return self.progress_steps
 
     @property
     def has_finished(self):

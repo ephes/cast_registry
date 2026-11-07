@@ -1,18 +1,30 @@
-<section>
-  <h1>Deployment Progress for {{ deployment.pk }}</h1>
-  <p>
-    The deployment is currently in progress for {{ domain }}.
-  </p>
-  <p
-    hx-get="{% url 'deploy_state' deployment_id=deployment.pk %}"
-    hx-trigger="every 1s"
-    hx-target="#progress-end-{{ deployment.pk }}"
-    hx-swap="beforebegin"
-  >
-    Progress Steps..
-    {% for step in deployment.processed_steps %}
+<section id="progress-{{ deployment.pk }}"
+         {% if deployment.in_progress and not poll_error %}
+           hx-get="{% url 'deploy_state' deployment_id=deployment.pk %}"
+           hx-trigger="every 1s"
+           hx-target="this"
+           hx-swap="outerHTML"
+         {% endif %}>
+  <h2>Deployment Progress for {{ deployment.pk }}</h2>
+  {% if poll_error %}
+    <p role="alert">Progress unavailable. Displayed steps may be stale.</p>
+    <button id="retry-progress-{{ deployment.pk }}"
+            hx-get="{% url 'deploy_state' deployment_id=deployment.pk %}"
+            hx-target="#progress-{{ deployment.pk }}"
+            hx-swap="outerHTML">Refresh progress</button>
+  {% elif deployment.has_finished %}
+    <p role="status">Deployment finished.</p>
+  {% else %}
+    <p>Deployment in progress.</p>
+  {% endif %}
+  {% if deployment.last_updated %}
+    <p>Last successful refresh: <time datetime="{{ deployment.last_updated|date:'c' }}">{{ deployment.last_updated }}</time></p>
+  {% else %}
+    <p>No successful refresh yet.</p>
+  {% endif %}
+  <div data-progress-steps>
+    {% for step in deployment.progress_steps %}
       <aside>{{ step.name }}</aside>
     {% endfor %}
-  </p>
-  <div id="progress-end-{{ deployment.pk }}"></div>
+  </div>
 </section>
