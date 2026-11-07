@@ -2,12 +2,14 @@ import secrets
 import string
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .fastdeploy import AbstractClient, Client, RemoteDeployment, Step, Steps
 from .serializers import RegistryJSONEncoder
+from .validators import validate_deployment_domain
 
 
 def create_secret(length: int = 32):
@@ -30,7 +32,12 @@ class Domain(models.Model):
         default=Backend.CAST,
     )
 
-    fqdn = models.CharField(max_length=255, unique=True, verbose_name="Enter Fully Qualified Domain Name")
+    fqdn = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name="Enter Fully Qualified Domain Name",
+        validators=[validate_deployment_domain],
+    )
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="registry")
 
     def __str__(self):
@@ -75,6 +82,7 @@ class Domain(models.Model):
 
     @property
     def context(self):
+        validate_deployment_domain(self.fqdn)
         prefix = "cast" if self.backend == self.Backend.CAST else "wp"
         fqdn = self.fqdn
         underscored_fqdn = fqdn.replace(".", "_")
@@ -114,10 +122,23 @@ class Deployment(models.Model):
     )
 
     start_failed = models.BooleanField(default=False)
+    reconciled = models.BooleanField(default=False)
     last_updated = models.DateTimeField(null=True)
     data = models.JSONField(encoder=RegistryJSONEncoder, null=True)
     processed_steps = models.JSONField(encoder=RegistryJSONEncoder, default=list)
     domain = models.ForeignKey(Domain, on_delete=models.CASCADE)
+
+    @classmethod
+    def admit(cls, domain, target, reconciled_attempts):
+        """Commit a reservation before any controller request, shared by both targets."""
+        with transaction.atomic():
+            Domain.objects.select_for_update().get(pk=domain.pk)
+            attempts = cls.objects.filter(domain=domain, reconciled=False)
+            for attempt in attempts:
+                if not attempt.has_finished and not (attempt.start_failed and attempt.pk in reconciled_attempts):
+                    raise ValidationError("This domain has an active or unconfirmed attempt. Check its status first.")
+            attempts.filter(start_failed=True, pk__in=reconciled_attempts).update(reconciled=True)
+            return cls.objects.create(domain=domain, target=target)
 
     @property
     def remote(self):

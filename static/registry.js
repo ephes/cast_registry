@@ -1,3 +1,10 @@
+// Admission conflicts carry a rendered form with actionable reconciliation choices.
+document.addEventListener("htmx:beforeSwap", function (event) {
+    if (event.detail.xhr.status === 409 && event.detail.target.id === "main" && event.detail.requestConfig.verb === "post") {
+        event.detail.shouldSwap = true;
+        event.detail.isError = false;
+    }
+});
 // Intentional form submissions move focus; pagination leaves focus alone.
 document.addEventListener("htmx:afterSwap", function (event) {
     if (event.detail.target.id !== "main" || event.detail.requestConfig.verb !== "post") return;
