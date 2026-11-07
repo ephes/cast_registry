@@ -163,3 +163,25 @@ def test_progress_snapshot_error_retry_and_terminal_swap(browser_page, deploymen
         expect(page.locator(f"#progress-{deployment.pk}")).to_have_count(1)
         assert page.locator('[hx-trigger="every 1s"]').count() == 0
         assert fetch.call_count == 3
+
+
+@pytest.mark.django_db(transaction=True)
+def test_admission_conflict_and_explicit_reconciliation(browser_page, domain):
+    from ..fastdeploy import RemoteDeployment
+
+    old = Deployment.objects.create(domain=domain, start_failed=True)
+    page = browser_page
+    page.goto("http://testserver" + reverse("domain_deployments", args=[domain.pk]))
+    with patch("apps.registry.fastdeploy.TestClient.start_deployment", return_value=RemoteDeployment(id=2)) as start:
+        page.get_by_role("button", name="Submit").click()
+        expect(
+            page.get_by_text("This domain has an active or unconfirmed attempt. Check its status first.")
+        ).to_be_visible()
+        expect(page.locator("#form-feedback")).to_be_focused()
+        start.assert_not_called()
+        page.locator(f'[name="reconciled_attempts"][value="{old.pk}"]').check()
+        page.get_by_role("button", name="Submit").click()
+        expect(page.get_by_text("Deployment created successfully", exact=True)).to_be_visible()
+        start.assert_called_once()
+    old.refresh_from_db()
+    assert old.start_failed and old.reconciled

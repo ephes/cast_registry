@@ -121,8 +121,7 @@ Feedback is consumed once inside the replaced region. Intentional submissions
 focus the first invalid field or confirmation; pagination does not move focus.
 Pending forms disable their submit button, announce submission and drop repeated
 submissions until the request ends. Transport errors restore the form and advise
-checking the result before another attempt. This browser guard does not provide
-cross-client server idempotency. Chromium regressions run in the normal pytest
+checking the result before another attempt. Server admission also serializes deployment and removal across clients (see below). Chromium regressions run in the normal pytest
 suite against synthetic Django responses and the shipped scripts, without a
 controller or live application server.
 
@@ -140,10 +139,31 @@ Terminal responses still use HTMX status 286 and contain no automatic poller.
 A failed or uncertain start is saved in history with a safe explanation and no
 running poller. No raw controller exception is stored or shown. Check the actual
 service before choosing **Prepare a new attempt**, then deliberately submit the
-prefilled target. This creates a new history row and never replays or overwrites
+prefilled target and explicitly select the checked unconfirmed attempt in the form. This creates a new history row and never replays or overwrites
 the original attempt; a timeout can mean the remote service did start.
 
 Failure logs contain only the local deployment ID and error class; remote exception
 text is neither persisted in history nor logged. The cumulative steps remain
 readable text; only stale/error feedback uses an alert, avoiding announcements
 of the entire history and timestamp on every poll.
+
+## Domain safety and deployment admission
+
+Registered names must be lowercase ASCII DNS names without a trailing dot,
+up to 253 characters, and pass Django's public domain-name validator, for example `podcast.example.test` or a punycode hostname.
+Paths, URLs, userinfo, ports, whitespace, Unicode, IP addresses, shell syntax and
+alternate case/trailing-dot spellings are rejected.
+Names and derived identifiers are not normalized or silently rewritten. Invalid
+legacy rows cannot produce deployment context or be submitted for deployment;
+correct them deliberately before use.
+
+Deployment and removal share a domain-row admission lock. A history row is
+committed before the controller call, so pending, running and unconfirmed starts
+block other clients with HTTP 409. Finished attempts do not block. After checking
+the actual service, explicitly select each unconfirmed attempt that is safe to
+replace; this acknowledgement releases only those attempts and is recorded without
+changing their failure history. Replaying an acknowledgement cannot release a
+later attempt. A process crash before confirmation leaves a blocking pending row:
+an operator must reconcile its real service state before using `manage.py shell`
+to mark that specific row as `start_failed` for explicit acknowledgement. This is
+an administrative database operation; there is no automatic crash recovery action. Never automatically retry it.

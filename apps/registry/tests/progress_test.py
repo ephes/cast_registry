@@ -113,7 +113,7 @@ def test_failed_start_is_safe_durable_and_retry_is_new_attempt(client, domain, f
     assert Deployment.objects.count() == 1
     assert client.get(url + "?target=bad").context["form"].initial["target"] == "DP"
     with patch("apps.registry.fastdeploy.TestClient.start_deployment", return_value=RemoteDeployment(id=2)) as start:
-        client.post(url, {"target": "RM"})
+        client.post(url, {"target": "RM", "reconciled_attempts": [failed.pk]})
         assert start.call_count == 1
     failed.refresh_from_db()
     assert failed.start_failed

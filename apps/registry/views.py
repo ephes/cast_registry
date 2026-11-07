@@ -4,6 +4,7 @@ from json import JSONDecodeError
 import httpx
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -48,13 +49,13 @@ def fade_out(request: HttpRequest) -> HttpResponse:
     return HttpResponse(status=200, content="")
 
 
-def render_partial_or_full(request, template_name: str, context: dict):
+def render_partial_or_full(request, template_name: str, context: dict, *, status=200):
     if request.htmx and not request.htmx.history_restore_request:
         base_template = "_partial.html"
     else:
         base_template = "_base.html"
     context["base_template"] = base_template
-    return render(request, template_name, context)
+    return render(request, template_name, context, status=status)
 
 
 @login_required
@@ -84,23 +85,33 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
     domain = get_object_or_404(Domain, pk=domain_id)
     if domain.owner != request.user:
         return HttpResponse(status=403)
+    response_status = 200
     if request.method == "POST":
         form = DeploymentForm(request.POST, initial={"domain": domain})
         if form.is_valid():
-            deployment = form.save()
-            success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
             try:
-                deployment.start()
-            except Exception as exc:
-                logger.warning("Start unconfirmed for deployment %s (%s)", deployment.pk, type(exc).__name__)
-                deployment.start_failed = True
-                deployment.save(update_fields=["start_failed"])
-                messages.error(
-                    request, "Deployment start could not be confirmed. Check its status before a new attempt."
+                deployment = Deployment.admit(
+                    domain,
+                    form.cleaned_data["target"],
+                    set(form.cleaned_data["reconciled_attempts"].values_list("pk", flat=True)),
                 )
+            except DjangoValidationError as exc:
+                form.add_error(None, exc)
+                response_status = 409
             else:
-                messages.info(request, "Deployment created successfully")
-            return HttpResponseRedirect(success_url)
+                success_url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
+                try:
+                    deployment.start()
+                except Exception as exc:
+                    logger.warning("Start unconfirmed for deployment %s (%s)", deployment.pk, type(exc).__name__)
+                    deployment.start_failed = True
+                    deployment.save(update_fields=["start_failed"])
+                    messages.error(
+                        request, "Deployment start could not be confirmed. Check its status before a new attempt."
+                    )
+                else:
+                    messages.info(request, "Deployment created successfully")
+                return HttpResponseRedirect(success_url)
     else:
         target = request.GET.get("target", Deployment.Target.DEPLOY.value)
         if target not in Deployment.Target.values:
@@ -117,4 +128,4 @@ def domain_deployments(request: HttpRequest, domain_id: int) -> HttpResponse:
         "deployments_in_progress": in_progress,
         "page": page,
     }
-    return render_partial_or_full(request, "domain_deployments.html", context)
+    return render_partial_or_full(request, "domain_deployments.html", context, status=response_status)
