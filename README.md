@@ -167,3 +167,30 @@ later attempt. A process crash before confirmation leaves a blocking pending row
 an operator must reconcile its real service state before using `manage.py shell`
 to mark that specific row as `start_failed` for explicit acknowledgement. This is
 an administrative database operation; there is no automatic crash recovery action. Never automatically retry it.
+
+## Credentialed controller requests
+
+Set `DEPLOY_BASE_URL` explicitly to an absolute HTTPS URL, optionally with an API
+path prefix, such as `https://controller.example.test/api/`. Relative URLs,
+userinfo, queries, fragments, invalid ports and whitespace/control characters are
+configuration errors, rejected before sending service credentials or generated
+application secrets. Errors never include the configured URL. TLS verification
+remains enabled and redirects are not followed. For local development only, set
+`DEPLOY_ALLOW_LOOPBACK_HTTP=true` to allow HTTP to `localhost`, IPv4 loopback or
+`::1`; remote HTTP remains forbidden. There is no default controller endpoint.
+
+Both start and progress responses stream with a **1 MiB raw-body budget** and a
+**10 second whole-exchange deadline**, including connection, headers and drip-fed
+body transfer. HTTPX also retains per-operation timeouts. Controllers must return
+uncompressed JSON: requests advertise `Accept-Encoding: identity`, and encoded
+responses are rejected before decoding to prevent decompression amplification.
+HTTP status and response schema checks remain in place. Byte, time, encoding and
+JSON-decoding failures close the response and use the existing safe error path:
+starts remain unconfirmed, and polling preserves the last snapshot, releases its
+row lock and pauses automatic refresh. No raw response body is logged or stored
+on failure. Production's synchronous adapter uses asyncio cancellation and
+HTTPX's async streaming client to enforce the whole-exchange deadline. Each
+request closes its event loop without joining a cancelled native DNS worker,
+so a stalled system resolver cannot retain the request or database row lock.
+The native resolver itself may finish later; cancellation prevents its result
+from continuing the controller request.
