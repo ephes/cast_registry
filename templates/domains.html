@@ -4,13 +4,22 @@
     <form hx-post="{% url 'domains' %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
           hx-target="#main"
+          hx-swap="outerHTML"
+          hx-sync="this:drop"
+          hx-disabled-elt="find button[type=submit]"
+          data-registry-form
           action="{% url 'domains' %}" method="post">
       <header>
         <h2>Register your Podcast</h2>
       </header>
       {% csrf_token %}
+      {% if form.errors %}
+        <p id="form-feedback" role="alert" tabindex="-1">Please correct the errors below.</p>
+      {% endif %}
       {{ form }}
       <button type="submit">Submit</button>
+      <p class="request-pending" role="status">Submitting…</p>
+      <p data-request-error role="alert" hidden>Request unavailable. Check the result before submitting a new attempt.</p>
     </form>
   </section>
   <p></p>

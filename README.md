@@ -5,6 +5,7 @@ tokens, production database or deployment controller is needed for validation.
 
 ```shell
 uv sync --frozen --python 3.13
+uv run --frozen playwright install chromium
 export DJANGO_SETTINGS_MODULE=config.settings.test
 export DATABASE_URL=postgres://registry_test@localhost:55432/registry_test
 mkdir -p databases
@@ -111,3 +112,16 @@ uv run --frozen jupyter lab --version
 uv run --frozen jupyter notebook --version
 uv run --frozen python -c 'import notebook, jupyterlab, jupyter_server, nbconvert, tornado'
 ```
+
+## Form interaction
+
+Registration, deployment and pagination replace the single main wrapper using
+vendored HTMX 1.9.12. Ordinary forms retain POST/redirect/GET without JavaScript.
+Feedback is consumed once inside the replaced region. Intentional submissions
+focus the first invalid field or confirmation; pagination does not move focus.
+Pending forms disable their submit button, announce submission and drop repeated
+submissions until the request ends. Transport errors restore the form and advise
+checking the result before another attempt. This browser guard does not provide
+cross-client server idempotency. Chromium regressions run in the normal pytest
+suite against synthetic Django responses and the shipped scripts, without a
+controller or live application server.

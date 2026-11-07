@@ -486,3 +486,7 @@ blockquote footer {
     line-height: var(--line-height);
     padding: 1.5rem 0;
 }
+
+/* Form request feedback follows HTMX request lifetime. */
+.request-pending { display: none; }
+.htmx-request .request-pending { display: block; }

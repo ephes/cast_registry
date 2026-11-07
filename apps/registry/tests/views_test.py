@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -155,7 +156,7 @@ class Request:
     META = {"CSRF_COOKIE": "asdf"}
 
     def __init__(self, is_htmx):
-        self.htmx = is_htmx
+        self.htmx = SimpleNamespace(history_restore_request=False) if is_htmx else False
 
 
 def test_render_full_when_htmx_is_false():
@@ -227,3 +228,40 @@ def test_owner_list_pagination(client, user, other_user, query, expected_page, l
     assert list(page.object_list) == expected[start:stop]
     if listing == "domains":
         assert b"foreign.example.com" not in response.content
+
+
+@pytest.mark.django_db
+def test_form_fragment_contracts(client, user, domain):
+    client.force_login(user)
+    for url in [reverse("domains"), reverse("domain_deployments", args=[domain.pk])]:
+        response = client.post(url, {}, headers={"HX-Request": "true"})
+        html = response.content.decode()
+        assert html.count('<main id="main">') == 1
+        assert 'hx-swap="outerHTML"' in html
+        assert 'hx-sync="this:drop"' in html
+        assert 'hx-disabled-elt="find button[type=submit]"' in html
+        assert 'role="alert" tabindex="-1"' in html
+        assert "<!doctype html>" not in html
+
+
+@pytest.mark.django_db
+def test_registration_feedback_consumed_once(client, user):
+    client.force_login(user)
+    response = client.post(
+        reverse("domains"),
+        {"fqdn": "feedback.example.com", "backend": "CA"},
+        headers={"HX-Request": "true"},
+        follow=True,
+    )
+    assert response.content.count(b"Domain registered successfully") == 1
+    assert b'role="status" tabindex="-1"' in response.content
+    assert b"Domain registered successfully" not in client.get(reverse("domains")).content
+
+
+@pytest.mark.django_db
+def test_history_cache_miss_returns_full_document(client, user):
+    client.force_login(user)
+    response = client.get(reverse("domains"), headers={"HX-Request": "true", "HX-History-Restore-Request": "true"})
+    assert b"<!doctype html>" in response.content
+    assert b"<header>" in response.content
+    assert response.content.count(b'<main id="main">') == 1
