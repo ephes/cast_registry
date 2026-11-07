@@ -123,7 +123,7 @@ def test_two_clients_admit_exactly_one_before_remote_completion(domain, targets)
 
     def remote_start(deployment):
         # The admission is committed and visible before the controller is invoked.
-        assert Deployment.objects.filter(pk=deployment.pk, data=None).exists()
+        assert Deployment.objects.filter(pk=deployment.pk, data__isnull=True).exists()
         called.set()
         assert rejected.wait(10)
         return RemoteDeployment(id=1)
