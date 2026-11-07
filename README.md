@@ -125,3 +125,25 @@ checking the result before another attempt. This browser guard does not provide
 cross-client server idempotency. Chromium regressions run in the normal pytest
 suite against synthetic Django responses and the shipped scripts, without a
 controller or live application server.
+
+## Deployment progress and launch outcomes
+
+Each progress response replaces a cumulative, escaped snapshot, so independent
+viewers see every recorded step once, including the final step. PostgreSQL row
+locks serialize refresh/publication for a deployment; an older remote snapshot
+cannot remove recorded steps or reopen a terminal deployment. Owner checks apply
+to every poll. The last successful refresh time remains visible. HTTP/transport
+and malformed-response failures preserve the snapshot, announce that it may be stale and pause automatic
+polling; **Refresh progress** retries explicitly and resumes polling on recovery.
+Terminal responses still use HTMX status 286 and contain no automatic poller.
+
+A failed or uncertain start is saved in history with a safe explanation and no
+running poller. No raw controller exception is stored or shown. Check the actual
+service before choosing **Prepare a new attempt**, then deliberately submit the
+prefilled target. This creates a new history row and never replays or overwrites
+the original attempt; a timeout can mean the remote service did start.
+
+Failure logs contain only the local deployment ID and error class; remote exception
+text is neither persisted in history nor logged. The cumulative steps remain
+readable text; only stale/error feedback uses an alert, avoiding announcements
+of the entire history and timestamp on every poll.

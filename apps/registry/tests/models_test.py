@@ -55,26 +55,26 @@ def test_deployment_start(domain, remote_deployment):
 
 @pytest.mark.django_db
 def test_deployment_get_empty_new_steps_on_finished(finished_deployment):
-    new_steps = finished_deployment.get_new_steps()
-    assert new_steps == []
+    new_steps = finished_deployment.refresh_progress()
+    assert new_steps == finished_deployment.progress_steps
 
 
 @pytest.mark.django_db
-def test_deployment_get_new_steps(domain):
+def test_deployment_refresh_progress(domain):
     remote_deployment = RemoteDeployment(id=1, no_steps_yet=True)
     deployment = Deployment(domain=domain, data=remote_deployment)
     deployment.save()
     deployment.refresh_from_db()
     remote_deployment.no_steps_yet = False
     client = StubClient(remote_deployment)
-    new_steps = deployment.get_new_steps(client=client)
+    new_steps = deployment.refresh_progress(client=client)
     assert new_steps == [SpecialSteps.START.value]
     assert not deployment.remote.has_finished
 
-    # start step is already seen
+    # Every viewer receives the cumulative snapshot
     deployment.refresh_from_db()
-    new_steps = deployment.get_new_steps(client=client)
-    assert new_steps == []
+    new_steps = deployment.refresh_progress(client=client)
+    assert new_steps == [SpecialSteps.START.value]
 
 
 @pytest.mark.django_db

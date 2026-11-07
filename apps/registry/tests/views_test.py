@@ -42,7 +42,7 @@ def test_get_domains_authenticated(client, user):
     url = reverse("domains")
     r = client.get(url)
     assert r.status_code == 200
-    assert "form hx-post" in r.content.decode("utf8")
+    assert "hx-post=" in r.content.decode("utf8")
 
 
 @pytest.mark.django_db
@@ -52,7 +52,7 @@ def test_get_domain_deployments_authenticated(client, domain):
     url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
     r = client.get(url)
     assert r.status_code == 200
-    assert "form hx-post" in r.content.decode("utf8")
+    assert "hx-post=" in r.content.decode("utf8")
 
 
 @pytest.mark.django_db
@@ -82,9 +82,10 @@ def test_post_domain_deployments_start_deployment_exception(client, domain):
     url = reverse("domain_deployments", kwargs={"domain_id": domain.pk})
     with patch("apps.registry.models.Deployment.start", side_effect=Exception("Test")):
         r = client.post(url, data={"target": "DP"}, follow=True)
-    success_msg, error_msg = r.context["messages"]
-    assert str(success_msg) == "Deployment created successfully"
-    assert str(error_msg) == "Could not start deployment due to: Test"
+    feedback = list(r.context["messages"])
+    assert len(feedback) == 1
+    assert str(feedback[0]) == "Deployment start could not be confirmed. Check its status before a new attempt."
+    assert b"Test" not in r.content
 
 
 def test_post_domains_authenticated(client, user):
@@ -108,8 +109,10 @@ def test_get_login_required_deploy_state_authenticated(client, deployment):
     user = domain.owner
     client.login(username=user.username, password=user._password)
     url = reverse("deploy_state", kwargs={"deployment_id": deployment.pk})
+    deployment.processed_steps = [SpecialSteps.START.value]
+    deployment.save()
     steps = [SpecialSteps.START.value]
-    with patch("apps.registry.models.Deployment.get_new_steps", return_value=steps):
+    with patch("apps.registry.models.Deployment.refresh_progress", return_value=steps):
         r = client.get(url)
     assert r.status_code == 200
     assert "aside" in r.content.decode("utf8")
@@ -147,7 +150,7 @@ def test_get_deployment_state_finished_has_stop_polling_status(client, user, fin
     client.login(username=user.username, password=user._password)
     url = reverse("deploy_state", kwargs={"deployment_id": finished_deployment.pk})
     steps = [SpecialSteps.END.value]
-    with patch("apps.registry.models.Deployment.get_new_steps", return_value=steps):
+    with patch("apps.registry.models.Deployment.refresh_progress", return_value=steps):
         r = client.get(url)
     assert r.status_code == 286
 

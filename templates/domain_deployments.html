@@ -1,7 +1,7 @@
 {% extends base_template %}
 {% block main %}
   <section>
-    <form hx-post="{% url 'domain_deployments' domain_id=domain.pk %}"
+    <form id="deployment-form" hx-post="{% url 'domain_deployments' domain_id=domain.pk %}"
           hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
           hx-target="#main"
           hx-swap="outerHTML"
@@ -31,11 +31,25 @@
   <section>
     <table>
       <thead>
-        <tr><th>Target</th></tr>
+        <tr><th>Target</th><th>Status</th></tr>
       </thead>
       <tbody>
         {% for deployment in page.object_list %}
-          <tr><td>{{ deployment.target }}</td></tr>
+          <tr>
+            <td>{{ deployment.get_target_display }}</td>
+            <td>
+              {% if deployment.start_failed %}
+                Start could not be confirmed. Check the service before submitting a new attempt.
+                <a href="?target={{ deployment.target }}#deployment-form">Prepare a new {{ deployment.get_target_display|lower }} attempt</a>
+              {% elif deployment.has_finished %}
+                Finished
+              {% elif deployment.in_progress %}
+                In progress
+              {% else %}
+                Not started
+              {% endif %}
+            </td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
