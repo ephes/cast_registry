@@ -1,10 +1,7 @@
-<article
-  class="fade-me-out"
-  hx-delete="{% url 'fade_out' %}"
-  hx-swap="outerHTML swap:1s"
-  hx-trigger="click, keyup[key=='Escape'] from:body"
->
-  {% for message in messages %}
-    <aside>{{message}}</aside>
-  {% endfor %}
-</article>
+{% if messages %}
+  <div id="form-feedback" role="status" tabindex="-1">
+    {% for message in messages %}
+      <p>{{ message }}</p>
+    {% endfor %}
+  </div>
+{% endif %}

@@ -44,7 +44,7 @@ def fade_out(request: HttpRequest) -> HttpResponse:
 
 
 def render_partial_or_full(request, template_name: str, context: dict):
-    if request.htmx:
+    if request.htmx and not request.htmx.history_restore_request:
         base_template = "_partial.html"
     else:
         base_template = "_base.html"
