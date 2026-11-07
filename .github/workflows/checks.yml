@@ -35,8 +35,6 @@ jobs:
     env:
       DATABASE_URL: postgres://registry_test:synthetic-only@localhost:5432/registry_test
       DJANGO_SETTINGS_MODULE: config.settings.test
-      JUPYTER_CONFIG_DIR: ${{ runner.temp }}/jupyter
-      IPYTHONDIR: ${{ runner.temp }}/ipython
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
@@ -62,6 +60,9 @@ jobs:
           uv run --frozen coverage run
           uv run --frozen coverage report --fail-under=100
       - name: Notebook CLI and rendering smoke
+        env:
+          JUPYTER_CONFIG_DIR: ${{ runner.temp }}/jupyter
+          IPYTHONDIR: ${{ runner.temp }}/ipython
         run: |
           uv run --frozen jupyter lab --version
           uv run --frozen jupyter notebook --version
