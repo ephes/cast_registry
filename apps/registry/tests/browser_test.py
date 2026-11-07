@@ -69,7 +69,7 @@ def test_registration_swaps_feedback_focus_and_pagination(browser_page, user, cl
         expect(page.get_by_role("status").filter(has_text="Domain registered successfully")).to_be_focused()
         expect(page.get_by_text("Domain registered successfully", exact=True)).to_have_count(1)
         expect(page.locator("#main")).to_have_count(1)
-        page.locator('a[hx-get="?page=2"]').click()
+        page.get_by_role("link", name="2", exact=True).click()
         expect(page.locator('nav a[hx-get="?page=1"]').first).to_be_visible()
         expect(page.locator("#main")).to_have_count(1)
         assert page.locator("#form-feedback").count() == 0
@@ -123,7 +123,7 @@ def test_pagination_history_cache_miss_keeps_document(browser_page, user):
     for i in range(4):
         Domain.objects.create(owner=user, fqdn=f"history-{i}.example.com")
     page.goto("http://testserver" + reverse("domains"))
-    page.locator('a[hx-get="?page=2"]').click()
+    page.get_by_role("link", name="2", exact=True).click()
     page.wait_for_url("**?page=2")
     page.evaluate("localStorage.removeItem('htmx-history-cache')")
     page.go_back()
